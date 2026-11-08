@@ -246,9 +246,10 @@ with col_g1:
 
 with col_g2:
     st.markdown("### % Frecuencia de Glosa por Código (Top 10)")
+    # Replicando exactamente la medida DAX con ALL('Sheet1') -> denominador fijo de df_base
     df_frec_glosa = df_filtrado.groupby('Codigo_Glosa_Dev').size().reset_index(name='Conteo')
-    total_conteo_general = df_filtrado.shape[0]
-    df_frec_glosa['Porcentaje'] = (df_frec_glosa['Conteo'] / total_conteo_general * 100) if total_conteo_general > 0 else 0
+    total_conteo_absoluto = len(df_base)
+    df_frec_glosa['Porcentaje'] = (df_frec_glosa['Conteo'] / total_conteo_absoluto * 100) if total_conteo_absoluto > 0 else 0
     df_frec_glosa = df_frec_glosa.sort_values(by='Porcentaje', ascending=False).head(10)
     
     fig_frec = px.pie(
