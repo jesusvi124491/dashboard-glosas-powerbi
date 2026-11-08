@@ -217,35 +217,4 @@ with col2:
 with col3:
     st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
-
-st.markdown("---")
-
-# ==========================================
-# --- 2. GRÁFICOS PRINCIPALES (ANILLO TIPOLOGÍA Y % FRECUENCIA CÓDIGO GLOSA - TOP 10) ---
-# ==========================================
-col_g1, col_g2 = st.columns(2)
-
-with col_g1:
-    st.markdown("### 📌 Valor Depurado Real por Tipología (Anillo)")
-    df_tipologia = df_filtrado.groupby('tipologia')['Valor_Glosa_Dev'].sum().reset_index()
-    fig_tip = px.pie(
-        df_tipologia, 
-        names='tipologia', 
-        values='Valor_Glosa_Dev', 
-        hole=0.5,
-        labels={'tipologia': 'Tipología', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
-    )
-    fig_tip.update_traces(textposition='inside', textinfo='percent+label')
-    fig_tip.update_layout(margin=dict(t=20, b=20, l=20, r=20))
-    st.plotly_chart(fig_tip, use_container_width=True)
-
-with col_g2:
-    st.markdown("### 🔄 % Frecuencia de Glosa por Código (Top 10)")
-    df_frec_glosa = df_filtrado.groupby('Codigo_Glosa_Dev').size().reset_index(name='Conteo')
-    total_conteo_general = df_filtrado.shape[0]
-    df_frec_glosa['Porcentaje'] = (df_frec_glosa['Conteo'] / total_conteo_general * 100) if total_conteo_general > 0 else 0
-    df_frec_glosa = df_frec_glosa.sort_values(by='Porcentaje', ascending=False).head(10)
-    
-    fig_frec = px.pie(
-        df_f
+    st.
