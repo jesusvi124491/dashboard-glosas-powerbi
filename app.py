@@ -30,23 +30,27 @@ st.markdown("""
         margin-bottom: 30px;
     }
     
-    /* 1. Forzar ancho fijo de 1000px y superposición flotante sobre el contenido (Z-index) */
+    /* 1. Forzar ancho fijo de 1000px y superposición flotante absoluta sobre el contenido (Z-index) */
     section[data-testid="stSidebar"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
         width: 1000px !important;
         min-width: 1000px !important;
         max-width: 1000px !important;
         z-index: 999999 !important;
         box-shadow: 10px 0px 30px rgba(0, 0, 0, 0.35);
-        transition: all 0.3s ease-in-out !important;
+        transition: transform 0.3s ease-in-out !important;
+        background-color: white !important;
     }
 
     /* 2. Cuando la barra lateral se cierra, se desplaza totalmente fuera de la pantalla */
     section[data-testid="stSidebar"][aria-expanded="false"] {
-        margin-left: -1000px !important;
         transform: translateX(-1000px) !important;
     }
 
-    /* 3. Forzar que el contenedor principal ocupe toda la anchura de la pantalla sin dejar espacios vacíos */
+    /* 3. Forzar que el contenedor principal ocupe toda la anchura fluida de la pantalla */
     .block-container {
         max-width: 100% !important;
         padding-left: 3rem !important;
