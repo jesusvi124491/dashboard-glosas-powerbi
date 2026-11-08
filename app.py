@@ -60,21 +60,23 @@ min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
 max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
 
 # ==========================================
-# --- FUNCIONES DE RESTABLECIMIENTO (RESET) ---
+# --- GESTIÓN DE ACCIONES DE RESETEO (AL INICIO) ---
 # ==========================================
-def reset_global():
-    keys_a_borrar = ['tipologia_sel', 'causal_sel', 'riesgo_sel', 'servicios_sel', 'widget_rango_atencion', 'widget_rango_radicacion']
-    for k in keys_a_borrar:
+if st.session_state.get('trigger_reset_global', False):
+    for k in ['tipologia_sel', 'causal_sel', 'riesgo_sel', 'servicios_sel', 'widget_rango_atencion', 'widget_rango_radicacion']:
         if k in st.session_state:
             del st.session_state[k]
+    st.session_state.trigger_reset_global = False
 
-def reset_atencion():
+if st.session_state.get('trigger_reset_at', False):
     if 'widget_rango_atencion' in st.session_state:
         del st.session_state['widget_rango_atencion']
+    st.session_state.trigger_reset_at = False
 
-def reset_radicacion():
+if st.session_state.get('trigger_reset_rad', False):
     if 'widget_rango_radicacion' in st.session_state:
         del st.session_state['widget_rango_radicacion']
+    st.session_state.trigger_reset_rad = False
 
 
 # ==========================================
@@ -125,7 +127,7 @@ with col_f5:
         )
     with sub_fa2:
         if st.button("🔄", key="btn_reset_at", help="Restablecer Fecha de Atención"):
-            reset_atencion()
+            st.session_state.trigger_reset_at = True
             st.rerun()
 
 with col_f6:
@@ -142,7 +144,7 @@ with col_f6:
         )
     with sub_fr2:
         if st.button("🔄", key="btn_reset_rad", help="Restablecer Fecha de Radicación"):
-            reset_radicacion()
+            st.session_state.trigger_reset_rad = True
             st.rerun()
 
 # Botón de Restablecimiento Global centrado justo después del último filtro
@@ -150,7 +152,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 col_btn1, col_btn2, col_btn3 = st.columns([3, 4, 3])
 with col_btn2:
     if st.button("🔄 Restablecer Todos los Filtros (Global)", use_container_width=True):
-        reset_global()
+        st.session_state.trigger_reset_global = True
         st.rerun()
 
 st.markdown("---")
