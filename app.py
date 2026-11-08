@@ -63,21 +63,31 @@ with col_f3:
     riesgo_disp = ["Todos", "Alto (Rojo)", "Medio (Amarillo)", "Bajo (Verde)"]
     riesgo_sel = st.selectbox("🚦 Filtrar por Nivel de Riesgo (Semáforo)", riesgo_disp)
 
-# Fila 2 de filtros (Servicios y Fechas)
-col_f4, col_f5 = st.columns(2)
+# Fila 2 de filtros (Servicios, Fecha de Atención y Fecha de Radicación)
+col_f4, col_f5, col_f6 = st.columns(3)
 
 with col_f4:
     servicios_disp = list(df_base['Nombre del servicio '].unique())
     servicios_sel = st.multiselect("👁️ Filtrar Servicios Específicos", options=servicios_disp, default=[])
 
 with col_f5:
-    min_f_global = df_base['Fecha_Atencion'].min().date()
-    max_f_global = df_base['Fecha_Atencion'].max().date()
+    min_f_at = df_base['Fecha_Atencion'].min().date()
+    max_f_at = df_base['Fecha_Atencion'].max().date()
     rango_atencion = st.date_input(
         "📅 Rango de Fecha de Atención",
-        value=(min_f_global, max_f_global),
-        min_value=min_f_global,
-        max_value=max_f_global
+        value=(min_f_at, max_f_at),
+        min_value=min_f_at,
+        max_value=max_f_at
+    )
+
+with col_f6:
+    min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
+    max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
+    rango_radicacion = st.date_input(
+        "📈 Rango de Fecha de Radicación",
+        value=(min_f_rad, max_f_rad),
+        min_value=min_f_rad,
+        max_value=max_f_rad
     )
 
 st.markdown("---")
@@ -103,6 +113,13 @@ if len(rango_atencion) == 2:
         (df_filtrado['Fecha_Atencion'].dt.date <= f_fin)
     ]
 
+if len(rango_radicacion) == 2:
+    r_ini, r_fin = rango_radicacion
+    df_filtrado = df_filtrado[
+        (df_filtrado['Fecha_Hora_Radicacion'].dt.date >= r_ini) & 
+        (df_filtrado['Fecha_Hora_Radicacion'].dt.date <= r_fin)
+    ]
+
 # Función auxiliar para calcular el riesgo por causal
 def asignar_riesgo_y_color(valor):
     if valor > 233000000:
@@ -112,9 +129,7 @@ def asignar_riesgo_y_color(valor):
     else:
         return "Bajo (Verde)", "🟢"
 
-# Si el usuario filtró por nivel de riesgo en la matriz, aplicarlo a todo el DataFrame
 if riesgo_sel != "Todos":
-    # Calcular temporalmente el riesgo por causal para filtrar las filas correspondientes
     causales_riesgo = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
     causales_riesgo['Nivel'] = causales_riesgo['Valor_Glosa_Dev'].apply(lambda x: asignar_riesgo_y_color(x)[0])
     causales_validas = causales_riesgo[causales_riesgo['Nivel'] == riesgo_sel]['Causal_Estandarizada'].tolist()
@@ -185,22 +200,7 @@ col_g3, col_g4 = st.columns(2)
 with col_g3:
     st.markdown("### 📈 Tendencia de Glosas en el Tiempo")
     if not df_filtrado.empty and 'Fecha_Hora_Radicacion' in df_filtrado.columns:
-        min_rad = df_filtrado['Fecha_Hora_Radicacion'].min().date()
-        max_rad = df_filtrado['Fecha_Hora_Radicacion'].max().date()
-        
-        rango_rad = st.slider(
-            "Rango de Radicación",
-            min_value=min_rad,
-            max_value=max_rad,
-            value=(min_rad, max_rad),
-            key="slider_rad_global"
-        )
-        
-        df_temp = df_filtrado[
-            (df_filtrado['Fecha_Hora_Radicacion'].dt.date >= rango_rad[0]) & 
-            (df_filtrado['Fecha_Hora_Radicacion'].dt.date <= rango_rad[1])
-        ].copy()
-        
+        df_temp = df_filtrado.copy()
         df_temp['Periodo'] = df_temp['Fecha_Hora_Radicacion'].dt.to_period('M').astype(str)
         df_temp_grouped = df_temp.groupby('Periodo')['Valor_Glosa_Dev'].sum().reset_index()
         
@@ -214,7 +214,7 @@ with col_g3:
         fig_temp.update_layout(xaxis_tickangle=-45, margin=dict(t=20, b=20, l=20, r=20))
         st.plotly_chart(fig_temp, use_container_width=True)
     else:
-        st.info("No hay datos suficientes para la tendencia temporal.")
+        st.info("No hay datos suficientes para la tendencia temporal con los filtros actuales.")
 
 with col_g4:
     st.markdown("### 👁️ Top 10 Servicios con Mayor Afectación")
@@ -251,19 +251,3 @@ if not df_semaforo.empty:
     
     df_semaforo = df_semaforo.sort_values(by='Valor_Glosa_Dev', ascending=False)
     df_semaforo['Valor_Glosa_Dev'] = df_semaforo['Valor_Glosa_Dev'].map('${:,.0f}'.format)
-    
-    fila_total = pd.DataFrame({
-        'Semaforo': ['📊'],
-        'Causal_Estandarizada': ['**TOTAL GENERAL**'],
-        'Nivel de Riesgo': ['-'],
-        'Valor_Glosa_Dev': [f'${suma_total_glosas:,.0f}']
-    })
-    df_semaforo_final = pd.concat([df_semaforo, fila_total], ignore_index=True)
-
-    st.dataframe(
-        df_semaforo_final[['Semaforo', 'Causal_Estandarizada', 'Nivel de Riesgo', 'Valor_Glosa_Dev']],
-        use_container_width=True,
-        hide_index=True
-    )
-else:
-    st.info("No hay datos disponibles para la matriz con los filtros seleccionados.")
