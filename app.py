@@ -67,6 +67,7 @@ if st.session_state.get('trigger_reset_global', False):
     st.session_state.causal_sel = "Todas"
     st.session_state.riesgo_sel = "Todos"
     st.session_state.servicios_sel = []
+    st.session_state.codigos_sel = []
     st.session_state.widget_rango_atencion = (min_f_at, max_f_at)
     st.session_state.widget_rango_radicacion = (min_f_rad, max_f_rad)
     st.session_state.trigger_reset_global = False
@@ -93,7 +94,7 @@ st.markdown("---")
 st.markdown("### 🎛️ Filtros Interactivos del Tablero")
 
 # Fila 1 de filtros
-col_f1, col_f2, col_f3 = st.columns(3)
+col_f1, col_f2, col_f3, col_f7 = st.columns(4)
 
 with col_f1:
     tipologias_disp = ["Todas"] + list(df_base['tipologia'].unique())
@@ -106,6 +107,10 @@ with col_f2:
 with col_f3:
     riesgo_disp = ["Todos", "Alto (Rojo)", "Medio (Amarillo)", "Bajo (Verde)"]
     riesgo_sel = st.selectbox("🚦 Filtrar por Nivel de Riesgo (Semáforo)", riesgo_disp, key='riesgo_sel')
+
+with col_f7:
+    codigos_disp = sorted(df['Codigo_Glosa_Dev'].dropna().astype(str).unique())
+    codigos_sel = st.multiselect("🔢 Filtrar por Código de Glosa", options=codigos_disp, key='codigos_sel')
 
 # Fila 2 de filtros (Servicios y Fechas)
 col_f4, col_f5, col_f6 = st.columns(3)
@@ -179,6 +184,9 @@ def aplicar_filtros(base):
 
     if st.session_state.get('causal_sel', 'Todas') != "Todas":
         d = d[d['Causal_Estandarizada'] == st.session_state.causal_sel]
+
+    if st.session_state.get('codigos_sel', []):
+        d = d[d['Codigo_Glosa_Dev'].astype(str).isin(st.session_state.codigos_sel)]
 
     if st.session_state.get('servicios_sel', []):
         d = d[d['Nombre del servicio '].isin(st.session_state.servicios_sel)]
@@ -315,16 +323,9 @@ st.markdown("---")
 # El denominador (ALL) ignora todo filtro: siempre es el total de filas del dataset completo.
 st.markdown("### 🍩 % Frecuencia de Glosa por Código de Glosa (Top 10)")
 
-incluir_repetidos = st.checkbox(
-    "Incluir ítems repetidos (igual que el informe de Power BI)",
-    value=True,
-    key="freq_incluir_repetidos",
-    help="Activado: usa las 15.779 filas del Excel, como la medida DAX. "
-         "Desactivado: cuenta solo la base depurada (item_repetido = False)."
-)
-
-df_freq_base = aplicar_filtros(df if incluir_repetidos else df_base)
-total_filas_all = len(df) if incluir_repetidos else len(df_base)  # equivale a ALL('Sheet1')
+# Base completa (incluye ítems repetidos), igual que el informe de Power BI.
+df_freq_base = aplicar_filtros(df)
+total_filas_all = len(df)  # equivale a ALL('Sheet1')
 
 if not df_freq_base.empty and total_filas_all > 0:
     df_freq = (
@@ -368,6 +369,32 @@ if not df_freq_base.empty and total_filas_all > 0:
         f"Cada porcentaje = filas con ese código ÷ {total_filas_all:,} filas totales. "
         f"El centro muestra la suma del Top 10."
     )
+
+    # --- Tabla de cruce: Código ↔ Causal (frecuencia vs. valor) ---
+    st.markdown("#### 🔎 Cruce Código de Glosa ↔ Causal: frecuencia vs. valor")
+    df_cruce_all = (
+        df_freq_base.groupby(['Codigo_Glosa_Dev', 'Causal_Estandarizada'])
+        .agg(Filas=('Valor_Glosa_Dev', 'size'), Valor=('Valor_Glosa_Dev', 'sum'))
+        .reset_index()
+    )
+    df_cruce_all['Puesto por frecuencia'] = df_cruce_all['Filas'].rank(ascending=False, method='min').astype(int)
+    df_cruce_all['Puesto por valor'] = df_cruce_all['Valor'].rank(ascending=False, method='min').astype(int)
+    df_cruce_all['% Frecuencia de Glosa'] = df_cruce_all['Filas'] / total_filas_all * 100
+    df_cruce = df_cruce_all[df_cruce_all['Codigo_Glosa_Dev'].isin(df_freq['Codigo_Glosa_Dev'])] \
+        .sort_values('Filas', ascending=False)
+    df_cruce['¿También Top 10 por valor?'] = df_cruce['Puesto por valor'].apply(lambda r: "✅ Sí" if r <= 10 else "❌ No")
+    df_cruce['Valor Glosa'] = df_cruce['Valor'].map('${:,.0f}'.format)
+    df_cruce['% Frecuencia de Glosa'] = df_cruce['% Frecuencia de Glosa'].map(lambda x: f"{x:.2f}".replace(".", ",") + "%")
+    df_cruce = df_cruce.rename(columns={'Codigo_Glosa_Dev': 'Código', 'Causal_Estandarizada': 'Causal Estandarizada'})
+
+    st.dataframe(
+        df_cruce[['Código', 'Causal Estandarizada', 'Filas', '% Frecuencia de Glosa', 'Valor Glosa',
+                  'Puesto por frecuencia', 'Puesto por valor', '¿También Top 10 por valor?']],
+        use_container_width=True,
+        hide_index=True
+    )
+    st.caption("Los puestos se calculan entre todos los códigos con los filtros actuales. "
+               "Un ❌ indica una glosa frecuente pero de bajo valor.")
 else:
     st.info("ℹ️ No hay registros disponibles con los filtros seleccionados.")
 
