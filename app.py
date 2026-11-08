@@ -10,10 +10,17 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general
+# Estilo visual general y centrado del título
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
+    .title-banner {
+        text-align: center;
+        font-size: 26px;
+        font-weight: bold;
+        color: #1f2937;
+        margin-bottom: 20px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -39,13 +46,55 @@ valor_depurado_total = df_depurado_global['Valor_Glosa_Dev'].sum()
 # Base de datos depurada estricta
 df_base = df[df['item_repetido'] == False].copy()
 
+min_f_at = df_base['Fecha_Atencion'].min().date()
+max_f_at = df_base['Fecha_Atencion'].max().date()
+min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
+max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
+
+# ==========================================
+# --- GESTIÓN DE ESTADOS (SESSION STATE) PARA RESET GLOBAL Y DE FECHAS ---
+# ==========================================
+if 'tipologia_sel' not in st.session_state:
+    st.session_state.tipologia_sel = "Todas"
+if 'causal_sel' not in st.session_state:
+    st.session_state.causal_sel = "Todas"
+if 'riesgo_sel' not in st.session_state:
+    st.session_state.riesgo_sel = "Todos"
+if 'servicios_sel' not in st.session_state:
+    st.session_state.servicios_sel = []
+if 'rango_atencion' not in st.session_state:
+    st.session_state.rango_atencion = (min_f_at, max_f_at)
+if 'rango_radicacion' not in st.session_state:
+    st.session_state.rango_radicacion = (min_f_rad, max_f_rad)
+
+def reset_global():
+    st.session_state.tipologia_sel = "Todas"
+    st.session_state.causal_sel = "Todas"
+    st.session_state.riesgo_sel = "Todos"
+    st.session_state.servicios_sel = []
+    st.session_state.rango_atencion = (min_f_at, max_f_at)
+    st.session_state.rango_radicacion = (min_f_rad, max_f_rad)
+
+def reset_atencion():
+    st.session_state.rango_atencion = (min_f_at, max_f_at)
+
+def reset_radicacion():
+    st.session_state.rango_radicacion = (min_f_rad, max_f_rad)
+
+
 # ==========================================
 # --- PANEL DE FILTROS SUPERIOR (INTERACTIVO EN CASCADA) ---
 # ==========================================
-st.title("📊 Tablero Gerencial: Analítica de Glosas")
-st.subheader("S.O. Servicios Médicos Oftalmológicos (Bogotá)")
-st.markdown("---")
+st.markdown('<div class="title-banner">📊 Tablero Gerencial: Analítica de Glosas | S.O. Servicios Médicos Oftalmológicos (Bogotá)</div>', unsafe_allow_html=True)
 
+# Botón de Reseteo Global
+col_rg1, col_rg2, col_rg3 = st.columns([4, 2, 4])
+with col_rg2:
+    if st.button("🔄 Restablecer Todos los Filtros (Global)", use_container_width=True):
+        reset_global()
+        st.rerun()
+
+st.markdown("---")
 st.markdown("### 🎛️ Filtros Interactivos del Tablero")
 
 # Fila 1 de filtros
@@ -53,42 +102,56 @@ col_f1, col_f2, col_f3 = st.columns(3)
 
 with col_f1:
     tipologias_disp = ["Todas"] + list(df_base['tipologia'].unique())
-    tipologia_sel = st.selectbox("📌 Filtrar por Tipología", tipologias_disp)
+    tipologia_sel = st.selectbox("📌 Filtrar por Tipología", tipologias_disp, key='tipologia_sel')
 
 with col_f2:
     causales_disp = ["Todas"] + list(df_base['Causal_Estandarizada'].unique())
-    causal_sel = st.selectbox("⚠️ Filtrar por Causal Estandarizada", causales_disp)
+    causal_sel = st.selectbox("⚠️ Filtrar por Causal Estandarizada", causales_disp, key='causal_sel')
 
 with col_f3:
     riesgo_disp = ["Todos", "Alto (Rojo)", "Medio (Amarillo)", "Bajo (Verde)"]
-    riesgo_sel = st.selectbox("🚦 Filtrar por Nivel de Riesgo (Semáforo)", riesgo_disp)
+    riesgo_sel = st.selectbox("🚦 Filtrar por Nivel de Riesgo (Semáforo)", riesgo_disp, key='riesgo_sel')
 
-# Fila 2 de filtros (Servicios, Fecha de Atención y Fecha de Radicación)
+# Fila 2 de filtros (Servicios y Fechas con sus botones de reseteo individual)
 col_f4, col_f5, col_f6 = st.columns(3)
 
 with col_f4:
     servicios_disp = list(df_base['Nombre del servicio '].unique())
-    servicios_sel = st.multiselect("👁️ Filtrar Servicios Específicos", options=servicios_disp, default=[])
+    servicios_sel = st.multiselect("👁️ Filtrar Servicios Específicos", options=servicios_disp, key='servicios_sel')
 
 with col_f5:
-    min_f_at = df_base['Fecha_Atencion'].min().date()
-    max_f_at = df_base['Fecha_Atencion'].max().date()
-    rango_atencion = st.date_input(
-        "📅 Rango de Fecha de Atención",
-        value=(min_f_at, max_f_at),
-        min_value=min_f_at,
-        max_value=max_f_at
-    )
+    st.markdown("📅 **Rango de Fecha de Atención**")
+    sub_fa1, sub_fa2 = st.columns([4, 1])
+    with sub_fa1:
+        rango_atencion = st.date_input(
+            "Atención",
+            value=st.session_state.rango_atencion,
+            min_value=min_f_at,
+            max_value=max_f_at,
+            key='rango_atencion',
+            label_visibility="collapsed"
+        )
+    with sub_fa2:
+        if st.button("🔄", key="btn_reset_at", help="Restablecer Fecha de Atención"):
+            reset_atencion()
+            st.rerun()
 
 with col_f6:
-    min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
-    max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
-    rango_radicacion = st.date_input(
-        "📈 Rango de Fecha de Radicación",
-        value=(min_f_rad, max_f_rad),
-        min_value=min_f_rad,
-        max_value=max_f_rad
-    )
+    st.markdown("📈 **Rango de Fecha de Radicación**")
+    sub_fr1, sub_fr2 = st.columns([4, 1])
+    with sub_fr1:
+        rango_radicacion = st.date_input(
+            "Radicación",
+            value=st.session_state.rango_radicacion,
+            min_value=min_f_rad,
+            max_value=max_f_rad,
+            key='rango_radicacion',
+            label_visibility="collapsed"
+        )
+    with sub_fr2:
+        if st.button("🔄", key="btn_reset_rad", help="Restablecer Fecha de Radicación"):
+            reset_radicacion()
+            st.rerun()
 
 st.markdown("---")
 
@@ -97,30 +160,29 @@ st.markdown("---")
 # ==========================================
 df_filtrado = df_base.copy()
 
-if tipologia_sel != "Todas":
-    df_filtrado = df_filtrado[df_filtrado['tipologia'] == tipologia_sel]
+if st.session_state.tipologia_sel != "Todas":
+    df_filtrado = df_filtrado[df_filtrado['tipologia'] == st.session_state.tipologia_sel]
 
-if causal_sel != "Todas":
-    df_filtrado = df_filtrado[df_filtrado['Causal_Estandarizada'] == causal_sel]
+if st.session_state.causal_sel != "Todas":
+    df_filtrado = df_filtrado[df_filtrado['Causal_Estandarizada'] == st.session_state.causal_sel]
 
-if servicios_sel:
-    df_filtrado = df_filtrado[df_filtrado['Nombre del servicio '].isin(servicios_sel)]
+if st.session_state.servicios_sel:
+    df_filtrado = df_filtrado[df_filtrado['Nombre del servicio '].isin(st.session_state.servicios_sel)]
 
-if len(rango_atencion) == 2:
-    f_ini, f_fin = rango_atencion
+if len(st.session_state.rango_atencion) == 2:
+    f_ini, f_fin = st.session_state.rango_atencion
     df_filtrado = df_filtrado[
         (df_filtrado['Fecha_Atencion'].dt.date >= f_ini) & 
         (df_filtrado['Fecha_Atencion'].dt.date <= f_fin)
     ]
 
-if len(rango_radicacion) == 2:
-    r_ini, r_fin = rango_radicacion
+if len(st.session_state.rango_radicacion) == 2:
+    r_ini, r_fin = st.session_state.rango_radicacion
     df_filtrado = df_filtrado[
         (df_filtrado['Fecha_Hora_Radicacion'].dt.date >= r_ini) & 
         (df_filtrado['Fecha_Hora_Radicacion'].dt.date <= r_fin)
     ]
 
-# Función auxiliar para calcular el riesgo por causal
 def asignar_riesgo_y_color(valor):
     if valor > 233000000:
         return "Alto (Rojo)", "🔴"
@@ -129,10 +191,10 @@ def asignar_riesgo_y_color(valor):
     else:
         return "Bajo (Verde)", "🟢"
 
-if riesgo_sel != "Todos":
+if st.session_state.riesgo_sel != "Todos":
     causales_riesgo = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
     causales_riesgo['Nivel'] = causales_riesgo['Valor_Glosa_Dev'].apply(lambda x: asignar_riesgo_y_color(x)[0])
-    causales_validas = causales_riesgo[causales_riesgo['Nivel'] == riesgo_sel]['Causal_Estandarizada'].tolist()
+    causales_validas = causales_riesgo[causales_riesgo['Nivel'] == st.session_state.riesgo_sel]['Causal_Estandarizada'].tolist()
     df_filtrado = df_filtrado[df_filtrado['Causal_Estandarizada'].isin(causales_validas)]
 
 
