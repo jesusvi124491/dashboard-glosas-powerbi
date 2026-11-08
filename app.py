@@ -60,22 +60,23 @@ min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
 max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
 
 # ==========================================
-# --- GESTIÓN DE ACCIONES DE RESETEO (AL INICIO) ---
+# --- GESTIÓN DE ACCIONES DE RESETEO ---
 # ==========================================
 if st.session_state.get('trigger_reset_global', False):
-    for k in ['tipologia_sel', 'causal_sel', 'riesgo_sel', 'servicios_sel', 'widget_rango_atencion', 'widget_rango_radicacion']:
-        if k in st.session_state:
-            del st.session_state[k]
+    st.session_state.tipologia_sel = "Todas"
+    st.session_state.causal_sel = "Todas"
+    st.session_state.riesgo_sel = "Todos"
+    st.session_state.servicios_sel = []
+    st.session_state.widget_rango_atencion = (min_f_at, max_f_at)
+    st.session_state.widget_rango_radicacion = (min_f_rad, max_f_rad)
     st.session_state.trigger_reset_global = False
 
 if st.session_state.get('trigger_reset_at', False):
-    if 'widget_rango_atencion' in st.session_state:
-        del st.session_state['widget_rango_atencion']
+    st.session_state.widget_rango_atencion = (min_f_at, max_f_at)
     st.session_state.trigger_reset_at = False
 
 if st.session_state.get('trigger_reset_rad', False):
-    if 'widget_rango_radicacion' in st.session_state:
-        del st.session_state['widget_rango_radicacion']
+    st.session_state.widget_rango_radicacion = (min_f_rad, max_f_rad)
     st.session_state.trigger_reset_rad = False
 
 
