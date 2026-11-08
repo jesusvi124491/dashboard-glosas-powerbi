@@ -369,32 +369,6 @@ if not df_freq_base.empty and total_filas_all > 0:
         f"Cada porcentaje = filas con ese código ÷ {total_filas_all:,} filas totales. "
         f"El centro muestra la suma del Top 10."
     )
-
-    # --- Tabla de cruce: Código ↔ Causal (frecuencia vs. valor) ---
-    st.markdown("#### 🔎 Cruce Código de Glosa ↔ Causal: frecuencia vs. valor")
-    df_cruce_all = (
-        df_freq_base.groupby(['Codigo_Glosa_Dev', 'Causal_Estandarizada'])
-        .agg(Filas=('Valor_Glosa_Dev', 'size'), Valor=('Valor_Glosa_Dev', 'sum'))
-        .reset_index()
-    )
-    df_cruce_all['Puesto por frecuencia'] = df_cruce_all['Filas'].rank(ascending=False, method='min').astype(int)
-    df_cruce_all['Puesto por valor'] = df_cruce_all['Valor'].rank(ascending=False, method='min').astype(int)
-    df_cruce_all['% Frecuencia de Glosa'] = df_cruce_all['Filas'] / total_filas_all * 100
-    df_cruce = df_cruce_all[df_cruce_all['Codigo_Glosa_Dev'].isin(df_freq['Codigo_Glosa_Dev'])] \
-        .sort_values('Filas', ascending=False)
-    df_cruce['¿También Top 10 por valor?'] = df_cruce['Puesto por valor'].apply(lambda r: "✅ Sí" if r <= 10 else "❌ No")
-    df_cruce['Valor Glosa'] = df_cruce['Valor'].map('${:,.0f}'.format)
-    df_cruce['% Frecuencia de Glosa'] = df_cruce['% Frecuencia de Glosa'].map(lambda x: f"{x:.2f}".replace(".", ",") + "%")
-    df_cruce = df_cruce.rename(columns={'Codigo_Glosa_Dev': 'Código', 'Causal_Estandarizada': 'Causal Estandarizada'})
-
-    st.dataframe(
-        df_cruce[['Código', 'Causal Estandarizada', 'Filas', '% Frecuencia de Glosa', 'Valor Glosa',
-                  'Puesto por frecuencia', 'Puesto por valor', '¿También Top 10 por valor?']],
-        use_container_width=True,
-        hide_index=True
-    )
-    st.caption("Los puestos se calculan entre todos los códigos con los filtros actuales. "
-               "Un ❌ indica una glosa frecuente pero de bajo valor.")
 else:
     st.info("ℹ️ No hay registros disponibles con los filtros seleccionados.")
 
