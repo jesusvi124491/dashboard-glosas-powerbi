@@ -14,7 +14,6 @@ st.set_page_config(
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
-    .metric-card { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     </style>
 """, unsafe_allow_html=True)
 
@@ -22,8 +21,8 @@ st.markdown("""
 @st.cache_data
 def cargar_datos():
     df = pd.read_excel("dataset_analisis_powerbi_FINAL_V6.xlsx")
-    # Asegurar conversiones de fechas si es necesario
     df['Fecha_Hora_Radicacion'] = pd.to_datetime(df['Fecha_Hora_Radicacion'])
+    df['Fecha_Atencion'] = pd.to_datetime(df['Fecha_Atencion'])
     return df
 
 try:
@@ -35,23 +34,35 @@ except Exception as e:
 # --- BARRA LATERAL (FILTROS) ---
 st.sidebar.header("🔍 Filtros del Reporte")
 
+# Selector de Modo de Datos (Depurado vs Bruto)
+modo_datos = st.sidebar.radio(
+    "Tipo de Datos",
+    ["Depurado (Recomendado - Excluye duplicados)", "En Bruto (Todos los registros)"]
+)
+
+# Aplicar filtro de depuración basado en la columna 'item_repetido' del Power BI
+if "Depurado" in modo_datos:
+    df_base = df[df['item_repetido'] == False].copy()
+else:
+    df_base = df.copy()
+
 # Filtro por Tipología
-tipologias = ["Todas"] + list(df['tipologia'].unique())
+tipologias = ["Todas"] + list(df_base['tipologia'].unique())
 tipologia_sel = st.sidebar.selectbox("Seleccione Tipología", tipologias)
 
 # Filtro por Causal Estandarizada
-causales = ["Todas"] + list(df['Causal_Estandarizada'].unique())
+causales = ["Todas"] + list(df_base['Causal_Estandarizada'].unique())
 causal_sel = st.sidebar.selectbox("Seleccione Causal Estandarizada", causales)
 
-# Aplicar filtros
-df_filtrado = df.copy()
+# Aplicar filtros interactivos
+df_filtrado = df_base.copy()
 if tipologia_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado['tipologia'] == tipologia_sel]
 if causal_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado['Causal_Estandarizada'] == causal_sel]
 
 # --- CUERPO PRINCIPAL ---
-st.title("📊 Análisis Descriptivo y Correlacional de Glosas")
+st.title("📊 Análisis Gerencial: Analítica de Glosas")
 st.subheader("S.O. Servicios Médicos Oftalmológicos (Bogotá)")
 st.markdown("---")
 
@@ -65,11 +76,11 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.metric("Total Facturado", f"${total_facturado:,.0f}")
 with col2:
-    st.metric("Total Glosado / Devuelto", f"${total_glosado:,.0f}")
+    st.metric("Valor Depurado / Glosado", f"${total_glosado:,.0f}")
 with col3:
-    st.metric("% Impacto de Glosa", f"{porcentaje_glosa:.2f}%")
+    st.metric("% Impacto Depurado", f"{porcentaje_glosa:.2f}%")
 with col4:
-    st.metric("Cantidad de Registros", f"{total_registros:,}")
+    st.metric("Registros Analizados", f"{total_registros:,}")
 
 st.markdown("---")
 
@@ -112,18 +123,23 @@ col_g3, col_g4 = st.columns(2)
 
 with col_g3:
     st.markdown("### 📈 Tendencia de Glosas en el Tiempo")
-    if 'Fecha_Hora_Radicacion' in df_filtrado.columns and not df_filtrado['Fecha_Hora_Radicacion'].isna().all():
-        df_temp = df_filtrado.set_index('Fecha_Hora_Radicacion').resample('M')['Valor_Glosa_Dev'].sum().reset_index()
+    if not df_filtrado.empty and 'Fecha_Hora_Radicacion' in df_filtrado.columns:
+        # Agrupamiento robusto por mes y año para evitar errores de resample en Streamlit Cloud
+        df_temp = df_filtrado.copy()
+        df_temp['Periodo'] = df_temp['Fecha_Hora_Radicacion'].dt.to_period('M').astype(str)
+        df_temp_grouped = df_temp.groupby('Periodo')['Valor_Glosa_Dev'].sum().reset_index()
+        
         fig_temp = px.line(
-            df_temp, 
-            x='Fecha_Hora_Radicacion', 
+            df_temp_grouped, 
+            x='Periodo', 
             y='Valor_Glosa_Dev',
             markers=True,
-            labels={'Fecha_Hora_Radicacion': 'Mes de Radicación', 'Valor_Glosa_Dev': 'Valor Glosado ($)'}
+            labels={'Periodo': 'Mes de Radicación', 'Valor_Glosa_Dev': 'Valor Glosado ($)'}
         )
+        fig_temp.update_layout(xaxis_tickangle=-45, margin=dict(t=20, b=20, l=20, r=20))
         st.plotly_chart(fig_temp, use_container_width=True)
     else:
-        st.info("No hay datos de fecha suficientes para mostrar la tendencia temporal.")
+        st.info("No hay datos suficientes para la tendencia temporal.")
 
 with col_g4:
     st.markdown("### 👁️ Servicios con Mayor Afectación")
@@ -146,6 +162,6 @@ st.markdown("---")
 st.markdown("### 📋 Detalle de Registros Filtrados")
 columnas_mostrar = [
     'Numero_Radicacion', 'Numero_Factura', 'Valor_Total_Factura', 
-    'Fecha_Atencion', 'Valor_Glosa_Dev', 'tipologia', 'Causal_Estandarizada', 'Nombre del servicio '
+    'Fecha_Atencion', 'Valor_Glosa_Dev', 'tipologia', 'Causal_Estandarizada', 'Nombre del servicio ', 'item_repetido'
 ]
 st.dataframe(df_filtrado[columnas_mostrar], use_container_width=True)
