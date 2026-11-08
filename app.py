@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general y control estricto de la barra lateral flotante de 1000px y expansión total
+# Estilo visual general y control dinámico de la barra lateral de 1000px
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -30,7 +30,7 @@ st.markdown("""
         margin-bottom: 30px;
     }
     
-    /* 1. Forzar ancho fijo de 1000px y superposición flotante absoluta sobre el contenido (Z-index) */
+    /* 1. Barra lateral fija de 1000px de ancho */
     section[data-testid="stSidebar"] {
         position: fixed !important;
         top: 0 !important;
@@ -45,12 +45,22 @@ st.markdown("""
         background-color: white !important;
     }
 
-    /* 2. Cuando la barra lateral se cierra, se desplaza totalmente fuera de la pantalla */
+    /* 2. Ocultar completamente fuera de la pantalla cuando está cerrada */
     section[data-testid="stSidebar"][aria-expanded="false"] {
         transform: translateX(-1000px) !important;
     }
 
-    /* 3. Forzar que el contenedor principal ocupe toda la anchura fluida de la pantalla */
+    /* 3. Ajuste dinámico del contenido principal: se desplaza al abrir y ocupa el 100% al cerrar */
+    .stApp:has(section[data-testid="stSidebar"][aria-expanded="true"]) section[data-testid="stMain"] {
+        margin-left: 1000px !important;
+        transition: margin-left 0.3s ease-in-out !important;
+    }
+    .stApp:has(section[data-testid="stSidebar"][aria-expanded="false"]) section[data-testid="stMain"] {
+        margin-left: 0px !important;
+        transition: margin-left 0.3s ease-in-out !important;
+    }
+
+    /* Contenedor fluido para aprovechar toda la pantalla */
     .block-container {
         max-width: 100% !important;
         padding-left: 3rem !important;
