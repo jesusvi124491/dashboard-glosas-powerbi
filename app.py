@@ -31,42 +31,37 @@ except Exception as e:
     st.error(f"Error al cargar el archivo de datos: {e}")
     st.stop()
 
-# --- CÁLCULOS BASE EQUIVALENTES A MEDIDAS DAX DE POWER BI ---
+# --- CÁLCULOS BASE ---
 valor_bruto_total = df['Valor_Glosa_Dev'].sum()
 df_depurado_global = df[df['item_repetido'] == False]
 valor_depurado_total = df_depurado_global['Valor_Glosa_Dev'].sum()
 
-# --- BARRA LATERAL (FILTROS GLOBALES) ---
-st.sidebar.header("🔍 Filtros Globales")
-
-# Selector de Tipo de Datos (Solo Depurado)
-vista_datos = st.sidebar.radio(
-    "Tipo de Datos",
-    ["Depurado"]
-)
+# --- BARRA LATERAL (FILTROS GLOBALES E INTERACTIVOS) ---
+st.sidebar.header("🔍 Filtros Globales del Tablero")
 
 df_base = df[df['item_repetido'] == False].copy()
 
-# 1. Filtro por Tipología
+# 1. Filtro por Tipología (Interactivo en cascada)
 tipologias = ["Todas"] + list(df_base['tipologia'].unique())
 tipologia_sel = st.sidebar.selectbox("Seleccione Tipología", tipologias)
 
-# 2. Filtro por Fecha de Atención (Rango de Fechas)
-min_fecha = df_base['Fecha_Atencion'].min().date()
-max_fecha = df_base['Fecha_Atencion'].max().date()
+# 2. Filtro de Fecha de Atención amigable y fácil de limpiar
+st.sidebar.subheader("📅 Rango de Fechas de Atención")
+usar_filtro_fecha = st.sidebar.checkbox("Activar filtro por fechas de atención", value=False)
 
-rango_fechas = st.sidebar.date_input(
-    "Fecha de Atención",
-    value=(min_fecha, max_fecha),
-    min_value=min_fecha,
-    max_value=max_fecha
-)
+f_inicio, f_fin = None, None
+if usar_filtro_fecha:
+    min_f = df_base['Fecha_Atencion'].min().date()
+    max_f = df_base['Fecha_Atencion'].max().date()
+    rango_f = st.sidebar.date_input("Seleccione rango", value=(min_f, max_f), min_value=min_f, max_value=max_f)
+    if len(rango_f) == 2:
+        f_inicio, f_fin = rango_f
 
 # 3. Filtro por Causal Estandarizada
 causales = ["Todas"] + list(df_base['Causal_Estandarizada'].unique())
 causal_sel = st.sidebar.selectbox("Seleccione Causal Estandarizada", causales)
 
-# --- APLICAR FILTROS GLOBALES ---
+# --- APLICAR FILTROS GLOBALES EN CASCADA A TODO EL DASHBOARD ---
 df_filtrado = df_base.copy()
 
 if tipologia_sel != "Todas":
@@ -75,8 +70,7 @@ if tipologia_sel != "Todas":
 if causal_sel != "Todas":
     df_filtrado = df_filtrado[df_filtrado['Causal_Estandarizada'] == causal_sel]
 
-if len(rango_fechas) == 2:
-    f_inicio, f_fin = rango_fechas
+if usar_filtro_fecha and f_inicio and f_fin:
     df_filtrado = df_filtrado[
         (df_filtrado['Fecha_Atencion'].dt.date >= f_inicio) & 
         (df_filtrado['Fecha_Atencion'].dt.date <= f_fin)
@@ -87,7 +81,7 @@ st.title("📊 Tablero Gerencial: Analítica de Glosas")
 st.subheader("S.O. Servicios Médicos Oftalmológicos (Bogotá)")
 st.markdown("---")
 
-# 1. TARJETAS DE MÉTRICAS (KPIs)
+# 1. TARJETAS DE MÉTRICAS (KPIs Interactivos)
 val_bruto_filtrado = df['Valor_Glosa_Dev'].sum() 
 val_depurado_filtrado = df_filtrado['Valor_Glosa_Dev'].sum()
 impacto_depurado = (val_depurado_filtrado / valor_depurado_total * 100) if valor_depurado_total > 0 else 0
@@ -139,30 +133,13 @@ with col_g2:
 
 st.markdown("---")
 
-# 3. EVOLUCIÓN TEMPORAL (CON FILTRO ESPECÍFICO DE RANGO DE FECHAS) Y TOP 10 SERVICIOS
+# 3. EVOLUCIÓN TEMPORAL Y TOP 10 SERVICIOS CON MAYOR AFECTACIÓN
 col_g3, col_g4 = st.columns(2)
 
 with col_g3:
     st.markdown("### 📈 Tendencia de Glosas en el Tiempo")
-    
-    # Filtro específico de período para la tendencia temporal
     if not df_filtrado.empty and 'Fecha_Hora_Radicacion' in df_filtrado.columns:
-        min_rad = df_filtrado['Fecha_Hora_Radicacion'].min().date()
-        max_rad = df_filtrado['Fecha_Hora_Radicacion'].max().date()
-        
-        rango_rad = st.slider(
-            "Filtrar Rango de Radicación",
-            min_value=min_rad,
-            max_value=max_rad,
-            value=(min_rad, max_rad),
-            key="slider_rad"
-        )
-        
-        df_temp = df_filtrado[
-            (df_filtrado['Fecha_Hora_Radicacion'].dt.date >= rango_rad[0]) & 
-            (df_filtrado['Fecha_Hora_Radicacion'].dt.date <= rango_rad[1])
-        ].copy()
-        
+        df_temp = df_filtrado.copy()
         df_temp['Periodo'] = df_temp['Fecha_Hora_Radicacion'].dt.to_period('M').astype(str)
         df_temp_grouped = df_temp.groupby('Periodo')['Valor_Glosa_Dev'].sum().reset_index()
         
@@ -176,24 +153,11 @@ with col_g3:
         fig_temp.update_layout(xaxis_tickangle=-45, margin=dict(t=20, b=20, l=20, r=20))
         st.plotly_chart(fig_temp, use_container_width=True)
     else:
-        st.info("No hay datos suficientes para la tendencia temporal.")
+        st.info("No hay datos suficientes para la tendencia temporal con los filtros actuales.")
 
 with col_g4:
     st.markdown("### 👁️ Top 10 Servicios con Mayor Afectación")
-    
-    # Filtro específico para seleccionar servicios dentro del top
-    servicios_unicos = list(df_filtrado['Nombre del servicio '].unique())
-    servicio_sel_filtro = st.multiselect(
-        "Filtrar Servicios Específicos",
-        options=servicios_unicos,
-        default=[]
-    )
-    
-    df_serv_base = df_filtrado.copy()
-    if servicio_sel_filtro:
-        df_serv_base = df_serv_base[df_serv_base['Nombre del servicio '].isin(servicio_sel_filtro)]
-        
-    df_serv = df_serv_base.groupby('Nombre del servicio ')['Valor_Glosa_Dev'].sum().reset_index()
+    df_serv = df_filtrado.groupby('Nombre del servicio ')['Valor_Glosa_Dev'].sum().reset_index()
     df_serv = df_serv.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
     
     fig_serv = px.bar(
@@ -209,7 +173,7 @@ with col_g4:
 
 st.markdown("---")
 
-# 4. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO POR CAUSALES (CON FILTRO DE RIESGO)
+# 4. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO POR CAUSALES (CON TOTALES)
 st.markdown("### 🚦 Matriz de Semaforización de Riesgo Financiero por Causales de Glosa")
 st.markdown("Clasificación de riesgo basada en el valor acumulado de glosas por causal (🔴 Alto > $233M, 🟡 Medio $10M - $233M, 🟢 Bajo < $10M).")
 
@@ -223,24 +187,30 @@ def asignar_riesgo_y_color(valor):
     else:
         return "Bajo (Verde)", "🟢"
 
-res_riesgo = df_semaforo['Valor_Glosa_Dev'].apply(asignar_riesgo_y_color)
-df_semaforo['Nivel de Riesgo'] = [r[0] for r in res_riesgo]
-df_semaforo['Semaforo'] = [r[1] for r in res_riesgo]
+if not df_semaforo.empty:
+    res_riesgo = df_semaforo['Valor_Glosa_Dev'].apply(asignar_riesgo_y_color)
+    df_semaforo['Nivel de Riesgo'] = [r[0] for r in res_riesgo]
+    df_semaforo['Semaforo'] = [r[1] for r in res_riesgo]
+    
+    # Guardar la suma total antes de formatear como texto
+    suma_total_glosas = df_semaforo['Valor_Glosa_Dev'].sum()
+    
+    df_semaforo = df_semaforo.sort_values(by='Valor_Glosa_Dev', ascending=False)
+    df_semaforo['Valor_Glosa_Dev'] = df_semaforo['Valor_Glosa_Dev'].map('${:,.0f}'.format)
+    
+    # Agregar fila de totales
+    fila_total = pd.DataFrame({
+        'Semaforo': ['📊'],
+        'Causal_Estandarizada': ['**TOTAL GENERAL**'],
+        'Nivel de Riesgo': ['-'],
+        'Valor_Glosa_Dev': [f'${suma_total_glosas:,.0f}']
+    })
+    df_semaforo_final = pd.concat([df_semaforo, fila_total], ignore_index=True)
 
-# Filtro interactivo local para la matriz de semaforización
-filtro_riesgo_sel = st.selectbox(
-    "Filtrar Matriz por Nivel de Riesgo",
-    ["Todos", "Alto (Rojo)", "Medio (Amarillo)", "Bajo (Verde)"]
-)
-
-if filtro_riesgo_sel != "Todos":
-    df_semaforo = df_semaforo[df_semaforo['Nivel de Riesgo'] == filtro_riesgo_sel]
-
-df_semaforo = df_semaforo.sort_values(by='Valor_Glosa_Dev', ascending=False)
-df_semaforo['Valor_Glosa_Dev'] = df_semaforo['Valor_Glosa_Dev'].map('${:,.0f}'.format)
-
-st.dataframe(
-    df_semaforo[['Semaforo', 'Causal_Estandarizada', 'Nivel de Riesgo', 'Valor_Glosa_Dev']],
-    use_container_width=True,
-    hide_index=True
-)
+    st.dataframe(
+        df_semaforo_final[['Semaforo', 'Causal_Estandarizada', 'Nivel de Riesgo', 'Valor_Glosa_Dev']],
+        use_container_width=True,
+        hide_index=True
+    )
+else:
+    st.info("No hay datos disponibles para la matriz con los filtros seleccionados.")
