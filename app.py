@@ -54,14 +54,25 @@ valor_depurado_total = df_depurado_global['Valor_Glosa_Dev'].sum()
 # Base de datos depurada estricta
 df_base = df[df['item_repetido'] == False].copy()
 
+min_f_at = df_base['Fecha_Atencion'].min().date()
+max_f_at = df_base['Fecha_Atencion'].max().date()
+min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
+max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
+
 # ==========================================
 # --- FUNCIONES DE RESTABLECIMIENTO (RESET) ---
 # ==========================================
 def reset_global():
-    keys_a_borrar = ['tipologia_sel', 'causal_sel', 'riesgo_sel', 'servicios_sel', 'widget_rango_atencion', 'widget_rango_radicacion']
-    for k in keys_a_borrar:
-        if k in st.session_state:
-            del st.session_state[k]
+    # Limpiar o restablecer las llaves de los selectores y multiselectores para que vuelvan a sus valores iniciales
+    st.session_state.tipologia_sel = "Todas"
+    st.session_state.causal_sel = "Todas"
+    st.session_state.riesgo_sel = "Todos"
+    st.session_state.servicios_sel = []
+    
+    if 'widget_rango_atencion' in st.session_state:
+        del st.session_state['widget_rango_atencion']
+    if 'widget_rango_radicacion' in st.session_state:
+        del st.session_state['widget_rango_radicacion']
 
 def reset_atencion():
     if 'widget_rango_atencion' in st.session_state:
@@ -108,8 +119,6 @@ with col_f4:
 
 with col_f5:
     st.markdown("📅 **Rango de Fecha de Atención**")
-    min_f_at = df_base['Fecha_Atencion'].min().date()
-    max_f_at = df_base['Fecha_Atencion'].max().date()
     sub_fa1, sub_fa2 = st.columns([4, 1])
     with sub_fa1:
         rango_atencion = st.date_input(
@@ -126,8 +135,6 @@ with col_f5:
 
 with col_f6:
     st.markdown("📈 **Rango de Fecha de Radicación**")
-    min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
-    max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
     sub_fr1, sub_fr2 = st.columns([4, 1])
     with sub_fr1:
         rango_radicacion = st.date_input(
@@ -210,7 +217,7 @@ with col2:
 with col3:
     st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
+    st.metric("Recuento de Facturas", f"{recuento_facturas:,}")
 
 st.markdown("---")
 
