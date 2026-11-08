@@ -10,16 +10,24 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general y centrado del título
+# Estilo visual general y título principal grande
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
-    .title-banner {
+    .main-title {
         text-align: center;
-        font-size: 26px;
-        font-weight: bold;
-        color: #1f2937;
-        margin-bottom: 20px;
+        font-size: 32px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-top: 10px;
+        margin-bottom: 25px;
+    }
+    .subtitle-banner {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 30px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -52,7 +60,7 @@ min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
 max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
 
 # ==========================================
-# --- GESTIÓN DE ESTADOS (SESSION STATE) PARA RESET GLOBAL Y DE FECHAS ---
+# --- GESTIÓN DE ESTADOS (SESSION STATE) ---
 # ==========================================
 if 'tipologia_sel' not in st.session_state:
     st.session_state.tipologia_sel = "Todas"
@@ -62,39 +70,37 @@ if 'riesgo_sel' not in st.session_state:
     st.session_state.riesgo_sel = "Todos"
 if 'servicios_sel' not in st.session_state:
     st.session_state.servicios_sel = []
-if 'rango_atencion' not in st.session_state:
-    st.session_state.rango_atencion = (min_f_at, max_f_at)
-if 'rango_radicacion' not in st.session_state:
-    st.session_state.rango_radicacion = (min_f_rad, max_f_rad)
 
+# Callbacks para limpiar fechas de forma limpia sin colisionar con widgets
 def reset_global():
     st.session_state.tipologia_sel = "Todas"
     st.session_state.causal_sel = "Todas"
     st.session_state.riesgo_sel = "Todos"
     st.session_state.servicios_sel = []
-    st.session_state.rango_atencion = (min_f_at, max_f_at)
-    st.session_state.rango_radicacion = (min_f_rad, max_f_rad)
+    if 'widget_rango_atencion' in st.session_state:
+        del st.session_state['widget_rango_atencion']
+    if 'widget_rango_radicacion' in st.session_state:
+        del st.session_state['widget_rango_radicacion']
 
 def reset_atencion():
-    st.session_state.rango_atencion = (min_f_at, max_f_at)
+    if 'widget_rango_atencion' in st.session_state:
+        del st.session_state['widget_rango_atencion']
 
 def reset_radicacion():
-    st.session_state.rango_radicacion = (min_f_rad, max_f_rad)
+    if 'widget_rango_radicacion' in st.session_state:
+        del st.session_state['widget_rango_radicacion']
 
 
 # ==========================================
-# --- PANEL DE FILTROS SUPERIOR (INTERACTIVO EN CASCADA) ---
+# --- TÍTULO PRINCIPAL (GRANDE Y CENTRADO) ---
 # ==========================================
-st.markdown('<div class="title-banner">📊 Tablero Gerencial: Analítica de Glosas | S.O. Servicios Médicos Oftalmológicos (Bogotá)</div>', unsafe_allow_html=True)
-
-# Botón de Reseteo Global
-col_rg1, col_rg2, col_rg3 = st.columns([4, 2, 4])
-with col_rg2:
-    if st.button("🔄 Restablecer Todos los Filtros (Global)", use_container_width=True):
-        reset_global()
-        st.rerun()
-
+st.markdown('<div class="main-title">📊 Tablero Gerencial: Analítica de Glosas</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-banner">S.O. Servicios Médicos Oftalmológicos (Bogotá)</div>', unsafe_allow_html=True)
 st.markdown("---")
+
+# ==========================================
+# --- PANEL DE FILTROS INTERACTIVOS ---
+# ==========================================
 st.markdown("### 🎛️ Filtros Interactivos del Tablero")
 
 # Fila 1 de filtros
@@ -112,7 +118,7 @@ with col_f3:
     riesgo_disp = ["Todos", "Alto (Rojo)", "Medio (Amarillo)", "Bajo (Verde)"]
     riesgo_sel = st.selectbox("🚦 Filtrar por Nivel de Riesgo (Semáforo)", riesgo_disp, key='riesgo_sel')
 
-# Fila 2 de filtros (Servicios y Fechas con sus botones de reseteo individual)
+# Fila 2 de filtros (Servicios y Fechas)
 col_f4, col_f5, col_f6 = st.columns(3)
 
 with col_f4:
@@ -125,10 +131,10 @@ with col_f5:
     with sub_fa1:
         rango_atencion = st.date_input(
             "Atención",
-            value=st.session_state.rango_atencion,
+            value=(min_f_at, max_f_at),
             min_value=min_f_at,
             max_value=max_f_at,
-            key='rango_atencion',
+            key='widget_rango_atencion',
             label_visibility="collapsed"
         )
     with sub_fa2:
@@ -142,16 +148,24 @@ with col_f6:
     with sub_fr1:
         rango_radicacion = st.date_input(
             "Radicación",
-            value=st.session_state.rango_radicacion,
+            value=(min_f_rad, max_f_rad),
             min_value=min_f_rad,
             max_value=max_f_rad,
-            key='rango_radicacion',
+            key='widget_rango_radicacion',
             label_visibility="collapsed"
         )
     with sub_fr2:
         if st.button("🔄", key="btn_reset_rad", help="Restablecer Fecha de Radicación"):
             reset_radicacion()
             st.rerun()
+
+# Botón de Restablecimiento Global centrado justo después del último filtro
+st.markdown("<br>", unsafe_allow_html=True)
+col_btn1, col_btn2, col_btn3 = st.columns([3, 4, 3])
+with col_btn2:
+    if st.button("🔄 Restablecer Todos los Filtros (Global)", use_container_width=True):
+        reset_global()
+        st.rerun()
 
 st.markdown("---")
 
@@ -169,15 +183,15 @@ if st.session_state.causal_sel != "Todas":
 if st.session_state.servicios_sel:
     df_filtrado = df_filtrado[df_filtrado['Nombre del servicio '].isin(st.session_state.servicios_sel)]
 
-if len(st.session_state.rango_atencion) == 2:
-    f_ini, f_fin = st.session_state.rango_atencion
+if 'widget_rango_atencion' in st.session_state and len(st.session_state.widget_rango_atencion) == 2:
+    f_ini, f_fin = st.session_state.widget_rango_atencion
     df_filtrado = df_filtrado[
         (df_filtrado['Fecha_Atencion'].dt.date >= f_ini) & 
         (df_filtrado['Fecha_Atencion'].dt.date <= f_fin)
     ]
 
-if len(st.session_state.rango_radicacion) == 2:
-    r_ini, r_fin = st.session_state.rango_radicacion
+if 'widget_rango_radicacion' in st.session_state and len(st.session_state.widget_rango_radicacion) == 2:
+    r_ini, r_fin = st.session_state.widget_rango_radicacion
     df_filtrado = df_filtrado[
         (df_filtrado['Fecha_Hora_Radicacion'].dt.date >= r_ini) & 
         (df_filtrado['Fecha_Hora_Radicacion'].dt.date <= r_fin)
@@ -214,7 +228,7 @@ with col2:
 with col3:
     st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"{recuento_facturas:,}")
+    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
 
 st.markdown("---")
 
