@@ -231,7 +231,7 @@ with col1:
 with col2:
     st.metric("Valor Depurado Real", f"${val_depurado_filtrado:,.0f}")
 with col3:
-    st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
+    st.metric("% Impacto Depurado por $", f"{impacto_depurado:.2f}%")
 with col4:
     st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
 
@@ -366,8 +366,7 @@ if not df_freq_base.empty and total_filas_all > 0:
     )
     st.plotly_chart(fig_freq, use_container_width=True)
     st.caption(
-        f"Cada porcentaje = filas con ese código ÷ {total_filas_all:,} filas totales. "
-        f"El centro muestra la suma del Top 10."
+        f"El centro muestra el valor sólo del Top 10."
     )
 else:
     st.info("ℹ️ No hay registros disponibles con los filtros seleccionados.")
