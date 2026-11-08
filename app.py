@@ -54,33 +54,14 @@ valor_depurado_total = df_depurado_global['Valor_Glosa_Dev'].sum()
 # Base de datos depurada estricta
 df_base = df[df['item_repetido'] == False].copy()
 
-min_f_at = df_base['Fecha_Atencion'].min().date()
-max_f_at = df_base['Fecha_Atencion'].max().date()
-min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
-max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
-
 # ==========================================
-# --- GESTIÓN DE ESTADOS (SESSION STATE) ---
+# --- FUNCIONES DE RESTABLECIMIENTO (RESET) ---
 # ==========================================
-if 'tipologia_sel' not in st.session_state:
-    st.session_state.tipologia_sel = "Todas"
-if 'causal_sel' not in st.session_state:
-    st.session_state.causal_sel = "Todas"
-if 'riesgo_sel' not in st.session_state:
-    st.session_state.riesgo_sel = "Todos"
-if 'servicios_sel' not in st.session_state:
-    st.session_state.servicios_sel = []
-
-# Callbacks para limpiar fechas de forma limpia sin colisionar con widgets
 def reset_global():
-    st.session_state.tipologia_sel = "Todas"
-    st.session_state.causal_sel = "Todas"
-    st.session_state.riesgo_sel = "Todos"
-    st.session_state.servicios_sel = []
-    if 'widget_rango_atencion' in st.session_state:
-        del st.session_state['widget_rango_atencion']
-    if 'widget_rango_radicacion' in st.session_state:
-        del st.session_state['widget_rango_radicacion']
+    keys_a_borrar = ['tipologia_sel', 'causal_sel', 'riesgo_sel', 'servicios_sel', 'widget_rango_atencion', 'widget_rango_radicacion']
+    for k in keys_a_borrar:
+        if k in st.session_state:
+            del st.session_state[k]
 
 def reset_atencion():
     if 'widget_rango_atencion' in st.session_state:
@@ -127,6 +108,8 @@ with col_f4:
 
 with col_f5:
     st.markdown("📅 **Rango de Fecha de Atención**")
+    min_f_at = df_base['Fecha_Atencion'].min().date()
+    max_f_at = df_base['Fecha_Atencion'].max().date()
     sub_fa1, sub_fa2 = st.columns([4, 1])
     with sub_fa1:
         rango_atencion = st.date_input(
@@ -138,12 +121,13 @@ with col_f5:
             label_visibility="collapsed"
         )
     with sub_fa2:
-        if st.button("🔄", key="btn_reset_at", help="Restablecer Fecha de Atención"):
-            reset_atencion()
-            st.rerun()
+        if st.button("🔄", key="btn_reset_at", help="Restablecer Fecha de Atención", on_click=reset_atencion):
+            pass
 
 with col_f6:
     st.markdown("📈 **Rango de Fecha de Radicación**")
+    min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
+    max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
     sub_fr1, sub_fr2 = st.columns([4, 1])
     with sub_fr1:
         rango_radicacion = st.date_input(
@@ -155,17 +139,15 @@ with col_f6:
             label_visibility="collapsed"
         )
     with sub_fr2:
-        if st.button("🔄", key="btn_reset_rad", help="Restablecer Fecha de Radicación"):
-            reset_radicacion()
-            st.rerun()
+        if st.button("🔄", key="btn_reset_rad", help="Restablecer Fecha de Radicación", on_click=reset_radicacion):
+            pass
 
 # Botón de Restablecimiento Global centrado justo después del último filtro
 st.markdown("<br>", unsafe_allow_html=True)
 col_btn1, col_btn2, col_btn3 = st.columns([3, 4, 3])
 with col_btn2:
-    if st.button("🔄 Restablecer Todos los Filtros (Global)", use_container_width=True):
-        reset_global()
-        st.rerun()
+    if st.button("🔄 Restablecer Todos los Filtros (Global)", use_container_width=True, on_click=reset_global):
+        pass
 
 st.markdown("---")
 
@@ -174,13 +156,13 @@ st.markdown("---")
 # ==========================================
 df_filtrado = df_base.copy()
 
-if st.session_state.tipologia_sel != "Todas":
+if st.session_state.get('tipologia_sel', 'Todas') != "Todas":
     df_filtrado = df_filtrado[df_filtrado['tipologia'] == st.session_state.tipologia_sel]
 
-if st.session_state.causal_sel != "Todas":
+if st.session_state.get('causal_sel', 'Todas') != "Todas":
     df_filtrado = df_filtrado[df_filtrado['Causal_Estandarizada'] == st.session_state.causal_sel]
 
-if st.session_state.servicios_sel:
+if st.session_state.get('servicios_sel', []):
     df_filtrado = df_filtrado[df_filtrado['Nombre del servicio '].isin(st.session_state.servicios_sel)]
 
 if 'widget_rango_atencion' in st.session_state and len(st.session_state.widget_rango_atencion) == 2:
@@ -205,7 +187,7 @@ def asignar_riesgo_y_color(valor):
     else:
         return "Bajo (Verde)", "🟢"
 
-if st.session_state.riesgo_sel != "Todos":
+if st.session_state.get('riesgo_sel', 'Todos') != "Todos":
     causales_riesgo = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
     causales_riesgo['Nivel'] = causales_riesgo['Valor_Glosa_Dev'].apply(lambda x: asignar_riesgo_y_color(x)[0])
     causales_validas = causales_riesgo[causales_riesgo['Nivel'] == st.session_state.riesgo_sel]['Causal_Estandarizada'].tolist()
