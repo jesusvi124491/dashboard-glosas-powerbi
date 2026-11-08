@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual profesional: Barra lateral amplia de 460px (sin recortes) y expansión fluida al 100%
+# Estilo visual general: Barra lateral limpia de 460px y expansión total al cerrar
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -30,33 +30,22 @@ st.markdown("""
         margin-bottom: 30px;
     }
     
-    /* 1. Ancho perfecto de 460px para que los textos largos de filtros no se recorten */
+    /* Ancho óptimo de 460px para que los textos largos no se recorten */
     section[data-testid="stSidebar"] {
         width: 460px !important;
         min-width: 460px !important;
         max-width: 460px !important;
         z-index: 999999 !important;
         box-shadow: 8px 0px 25px rgba(0, 0, 0, 0.2);
-        transition: transform 0.3s ease-in-out !important;
         background-color: white !important;
     }
 
-    /* 2. Al cerrar la barra lateral, se desplaza totalmente fuera de la pantalla */
+    /* Al cerrar la barra lateral, se oculta completamente fuera de la vista */
     section[data-testid="stSidebar"][aria-expanded="false"] {
-        transform: translateX(-460px) !important;
+        display: none !important;
     }
 
-    /* 3. Ajuste del contenido principal: se desplaza al abrir y ocupa el 100% real al cerrar */
-    .stApp:has(section[data-testid="stSidebar"][aria-expanded="true"]) section[data-testid="stMain"] {
-        margin-left: 460px !important;
-        transition: margin-left 0.3s ease-in-out !important;
-    }
-    .stApp:has(section[data-testid="stSidebar"][aria-expanded="false"]) section[data-testid="stMain"] {
-        margin-left: 0px !important;
-        transition: margin-left 0.3s ease-in-out !important;
-    }
-
-    /* Contenedor fluido para aprovechar toda la pantalla en modo pantalla completa */
+    /* Contenedor fluido para aprovechar toda la pantalla */
     .block-container {
         max-width: 100% !important;
         padding-left: 3rem !important;
@@ -291,4 +280,65 @@ with col_g3:
         df_temp_grouped = df_temp.groupby('Periodo')['Valor_Glosa_Dev'].sum().reset_index()
         
         fig_temp = px.line(
-            df_temp_
+            df_temp_grouped, 
+            x='Periodo', 
+            y='Valor_Glosa_Dev',
+            markers=True,
+            labels={'Periodo': 'Mes de Radicación', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
+        )
+        fig_temp.update_layout(xaxis_tickangle=-45, margin=dict(t=20, b=20, l=20, r=20))
+        st.plotly_chart(fig_temp, use_container_width=True)
+    else:
+        st.info("No hay datos suficientes para la tendencia temporal con los filtros actuales.")
+
+with col_g4:
+    st.markdown("### Top 10 Servicios con Mayor Afectación")
+    df_serv = df_filtrado.groupby('Nombre del servicio ')['Valor_Glosa_Dev'].sum().reset_index()
+    df_serv = df_serv.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
+    
+    fig_serv = px.bar(
+        df_serv,
+        x='Valor_Glosa_Dev',
+        y='Nombre del servicio ',
+        orientation='h',
+        text_auto='.2s',
+        labels={'Nombre del servicio ': 'Servicio', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
+    )
+    fig_serv.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
+    st.plotly_chart(fig_serv, use_container_width=True)
+
+st.markdown("---")
+
+# ==========================================
+# --- 4. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
+# ==========================================
+st.markdown("### Matriz de Semaforización de Riesgo Financiero por Causales de Glosa")
+st.markdown("Clasificación de riesgo basada en el valor acumulado de glosas por causal (Alto > $233M, Medio $10M - $233M, Bajo < $10M).")
+
+df_semaforo = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
+
+if not df_semaforo.empty and df_semaforo['Valor_Glosa_Dev'].sum() > 0:
+    res_riesgo = df_semaforo['Valor_Glosa_Dev'].apply(asignar_riesgo_y_color)
+    df_semaforo['Nivel de Riesgo'] = [r[0] for r in res_riesgo]
+    df_semaforo['Semaforo'] = [r[1] for r in res_riesgo]
+    
+    suma_total_glosas = df_semaforo['Valor_Glosa_Dev'].sum()
+    
+    df_semaforo = df_semaforo.sort_values(by='Valor_Glosa_Dev', ascending=False)
+    df_semaforo['Valor_Glosa_Dev'] = df_semaforo['Valor_Glosa_Dev'].map('${:,.0f}'.format)
+    
+    fila_total = pd.DataFrame({
+        'Semaforo': ['📊'],
+        'Causal_Estandarizada': ['**TOTAL GENERAL**'],
+        'Nivel de Riesgo': ['-'],
+        'Valor_Glosa_Dev': [f'${suma_total_glosas:,.0f}']
+    })
+    df_semaforo_final = pd.concat([df_semaforo, fila_total], ignore_index=True)
+
+    st.dataframe(
+        df_semaforo_final[['Semaforo', 'Causal_Estandarizada', 'Nivel de Riesgo', 'Valor_Glosa_Dev']],
+        use_container_width=True,
+        hide_index=True
+    )
+else:
+    st.info("ℹ️ No hay registros de glosas disponibles con los filtros seleccionados.")
