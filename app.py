@@ -60,9 +60,9 @@ min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
 max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
 
 # ==========================================
-# --- GESTIÓN DE ACCIONES DE RESETEO ---
+# --- FUNCIONES DE RESTABLECIMIENTO (RESET) ---
 # ==========================================
-if st.session_state.get('trigger_reset_global', False):
+def reset_global():
     st.session_state.tipologia_sel = "Todas"
     st.session_state.causal_sel = "Todas"
     st.session_state.riesgo_sel = "Todos"
@@ -71,11 +71,11 @@ if st.session_state.get('trigger_reset_global', False):
     st.session_state.widget_rango_radicacion = (min_f_rad, max_f_rad)
     st.session_state.trigger_reset_global = False
 
-if st.session_state.get('trigger_reset_at', False):
+def reset_atencion():
     st.session_state.widget_rango_atencion = (min_f_at, max_f_at)
     st.session_state.trigger_reset_at = False
 
-if st.session_state.get('trigger_reset_rad', False):
+def reset_radicacion():
     st.session_state.widget_rango_radicacion = (min_f_rad, max_f_rad)
     st.session_state.trigger_reset_rad = False
 
@@ -87,76 +87,76 @@ st.markdown('<div class="main-title">📊 Tablero Gerencial: Analítica de Glosa
 st.markdown('<div class="subtitle-banner">S.O. Servicios Médicos Oftalmológicos (Bogotá)</div>', unsafe_allow_html=True)
 st.markdown("---")
 
+
 # ==========================================
-# --- PANEL DE FILTROS INTERACTIVOS ---
+# --- PANEL LATERAL DE FILTROS (SIDEBAR) ---
 # ==========================================
-st.markdown("### 🎛️ Filtros Interactivos del Tablero")
+st.sidebar.header("🎛️ Filtros Interactivos")
+st.sidebar.markdown("---")
 
-# Fila 1 de filtros
-col_f1, col_f2, col_f3 = st.columns(3)
+# 1. Filtro por Tipología
+tipologias_disp = ["Todas"] + list(df_base['tipologia'].unique())
+tipologia_sel = st.sidebar.selectbox("📌 Filtrar por Tipología", tipologias_disp, key='tipologia_sel')
 
-with col_f1:
-    tipologias_disp = ["Todas"] + list(df_base['tipologia'].unique())
-    tipologia_sel = st.selectbox("📌 Filtrar por Tipología", tipologias_disp, key='tipologia_sel')
+# 2. Filtro por Causal Estandarizada
+causales_disp = ["Todas"] + list(df_base['Causal_Estandarizada'].unique())
+causal_sel = st.sidebar.selectbox("⚠️ Filtrar por Causal Estandarizada", causales_disp, key='causal_sel')
 
-with col_f2:
-    causales_disp = ["Todas"] + list(df_base['Causal_Estandarizada'].unique())
-    causal_sel = st.selectbox("⚠️ Filtrar por Causal Estandarizada", causales_disp, key='causal_sel')
+# 3. Filtro por Nivel de Riesgo (Semáforo)
+riesgo_disp = ["Todos", "Alto (Rojo)", "Medio (Amarillo)", "Bajo (Verde)"]
+riesgo_sel = st.sidebar.selectbox("🚦 Filtrar por Nivel de Riesgo", riesgo_disp, key='riesgo_sel')
 
-with col_f3:
-    riesgo_disp = ["Todos", "Alto (Rojo)", "Medio (Amarillo)", "Bajo (Verde)"]
-    riesgo_sel = st.selectbox("🚦 Filtrar por Nivel de Riesgo (Semáforo)", riesgo_disp, key='riesgo_sel')
+st.sidebar.markdown("---")
 
-# Fila 2 de filtros (Servicios y Fechas)
-col_f4, col_f5, col_f6 = st.columns(3)
+# 4. Filtro por Servicios Específicos
+servicios_disp = list(df_base['Nombre del servicio '].unique())
+servicios_sel = st.sidebar.multiselect("👁️ Filtrar Servicios Específicos", options=servicios_disp, key='servicios_sel')
 
-with col_f4:
-    servicios_disp = list(df_base['Nombre del servicio '].unique())
-    servicios_sel = st.multiselect("👁️ Filtrar Servicios Específicos", options=servicios_disp, key='servicios_sel')
+st.sidebar.markdown("---")
 
-with col_f5:
-    st.markdown("📅 **Rango de Fecha de Atención**")
-    sub_fa1, sub_fa2 = st.columns([4, 1])
-    with sub_fa1:
-        rango_atencion = st.date_input(
-            "Atención",
-            value=st.session_state.get('widget_rango_atencion', (min_f_at, max_f_at)),
-            min_value=min_f_at,
-            max_value=max_f_at,
-            key='widget_rango_atencion',
-            label_visibility="collapsed"
-        )
-    with sub_fa2:
-        if st.button("🔄", key="btn_reset_at", help="Restablecer Fecha de Atención"):
-            st.session_state.trigger_reset_at = True
-            st.rerun()
-
-with col_f6:
-    st.markdown("📈 **Rango de Fecha de Radicación**")
-    sub_fr1, sub_fr2 = st.columns([4, 1])
-    with sub_fr1:
-        rango_radicacion = st.date_input(
-            "Radicación",
-            value=st.session_state.get('widget_rango_radicacion', (min_f_rad, max_f_rad)),
-            min_value=min_f_rad,
-            max_value=max_f_rad,
-            key='widget_rango_radicacion',
-            label_visibility="collapsed"
-        )
-    with sub_fr2:
-        if st.button("🔄", key="btn_reset_rad", help="Restablecer Fecha de Radicación"):
-            st.session_state.trigger_reset_rad = True
-            st.rerun()
-
-# Botón de Restablecimiento Global centrado justo después del último filtro
-st.markdown("<br>", unsafe_allow_html=True)
-col_btn1, col_btn2, col_btn3 = st.columns([3, 4, 3])
-with col_btn2:
-    if st.button("🔄 Restablecer Todos los Filtros (Global)", use_container_width=True):
-        st.session_state.trigger_reset_global = True
+# 5. Rango de Fecha de Atención
+st.sidebar.markdown("📅 **Rango de Fecha de Atención**")
+sub_fa1, sub_fa2 = st.sidebar.columns([4, 1])
+with sub_fa1:
+    rango_atencion = st.date_input(
+        "Atención",
+        value=st.session_state.get('widget_rango_atencion', (min_f_at, max_f_at)),
+        min_value=min_f_at,
+        max_value=max_f_at,
+        key='widget_rango_atencion',
+        label_visibility="collapsed"
+    )
+with sub_fa2:
+    if st.button("🔄", key="btn_reset_at", help="Restablecer Atención"):
+        reset_atencion()
         st.rerun()
 
-st.markdown("---")
+st.sidebar.markdown("---")
+
+# 6. Rango de Fecha de Radicación
+st.sidebar.markdown("📈 **Rango de Fecha de Radicación**")
+sub_fr1, sub_fr2 = st.sidebar.columns([4, 1])
+with sub_fr1:
+    rango_radicacion = st.date_input(
+        "Radicación",
+        value=st.session_state.get('widget_rango_radicacion', (min_f_rad, max_f_rad)),
+        min_value=min_f_rad,
+        max_value=max_f_rad,
+        key='widget_rango_radicacion',
+        label_visibility="collapsed"
+    )
+with sub_fr2:
+    if st.button("🔄", key="btn_reset_rad", help="Restablecer Radicación"):
+        reset_radicacion()
+        st.rerun()
+
+st.sidebar.markdown("---")
+
+# Botón de Restablecimiento Global en la barra lateral
+if st.sidebar.button("🔄 Restablecer Todos los Filtros", use_container_width=True):
+    reset_global()
+    st.rerun()
+
 
 # ==========================================
 # --- APLICAR FILTROS EN CASCADA A TODO EL DATASET ---
@@ -217,7 +217,7 @@ with col2:
 with col3:
     st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
+    st.metric("Recuento de Facturas", f"{recuento_facturas:,}")
 
 st.markdown("---")
 
