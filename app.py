@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general y título principal grande
+# Estilo visual general, título grande y ampliación del ancho de la barra lateral
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -29,9 +29,10 @@ st.markdown("""
         color: #475569;
         margin-bottom: 30px;
     }
-    /* Estilo para mejorar la lectura de los selectores en la barra lateral */
-    .sidebar .stSelectbox, .sidebar .stMultiSelect, .sidebar .stDateInput {
-        margin-bottom: 10px;
+    /* Ampliar el ancho de la barra lateral para que los textos largos no se recorten */
+    [data-testid="stSidebar"] {
+        min-width: 400px !important;
+        max-width: 400px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -83,7 +84,7 @@ st.markdown('<div class="subtitle-banner">S.O. Servicios Médicos Oftalmológico
 st.markdown("---")
 
 # ==========================================
-# --- PANEL LATERAL DE FILTROS (SIDEBAR) ---
+# --- PANEL LATERAL DE FILTROS (SIDEBAR AMPLIADO) ---
 # ==========================================
 st.sidebar.header("🎛️ Filtros Interactivos")
 st.sidebar.markdown("---")
@@ -213,7 +214,7 @@ with col2:
 with col3:
     st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
+    st.metric("Recuento de Facturas", f"{recuento_facturas:,}")
 
 st.markdown("---")
 
