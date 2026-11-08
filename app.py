@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general y control dinámico de la barra lateral de 1000px
+# Estilo visual general y control absoluto de visibilidad y expansión
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -30,41 +30,26 @@ st.markdown("""
         margin-bottom: 30px;
     }
     
-    /* 1. Barra lateral fija de 1000px de ancho */
+    /* 1. Forzar ancho fijo de 1000px para la barra lateral flotante */
     section[data-testid="stSidebar"] {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        height: 100vh !important;
         width: 1000px !important;
         min-width: 1000px !important;
         max-width: 1000px !important;
         z-index: 999999 !important;
         box-shadow: 10px 0px 30px rgba(0, 0, 0, 0.35);
-        transition: transform 0.3s ease-in-out !important;
         background-color: white !important;
     }
 
-    /* 2. Ocultar completamente fuera de la pantalla cuando está cerrada */
+    /* 2. Cuando la barra lateral se cierra, la ocultamos por completo de la pantalla */
     section[data-testid="stSidebar"][aria-expanded="false"] {
-        transform: translateX(-1000px) !important;
+        display: none !important;
     }
 
-    /* 3. Ajuste dinámico del contenido principal: se desplaza al abrir y ocupa el 100% al cerrar */
-    .stApp:has(section[data-testid="stSidebar"][aria-expanded="true"]) section[data-testid="stMain"] {
-        margin-left: 1000px !important;
-        transition: margin-left 0.3s ease-in-out !important;
-    }
-    .stApp:has(section[data-testid="stSidebar"][aria-expanded="false"]) section[data-testid="stMain"] {
-        margin-left: 0px !important;
-        transition: margin-left 0.3s ease-in-out !important;
-    }
-
-    /* Contenedor fluido para aprovechar toda la pantalla */
+    /* 3. Forzar que el contenedor principal ocupe el 100% de la pantalla cuando la barra esté oculta */
     .block-container {
         max-width: 100% !important;
-        padding-left: 3rem !important;
-        padding-right: 3rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
     }
     </style>
 """, unsafe_allow_html=True)
