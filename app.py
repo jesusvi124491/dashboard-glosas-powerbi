@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general, título grande y barra lateral de 1000px
+# Estilo visual general, título grande y barra lateral de 1000px flotante
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -29,7 +29,7 @@ st.markdown("""
         color: #475569;
         margin-bottom: 30px;
     }
-    /* Ancho de 1000px para la barra lateral flotante */
+    /* Ancho de 1000px para la barra lateral y superposición flotante z-index */
     [data-testid="stSidebar"] {
         min-width: 1000px !important;
         max-width: 1000px !important;
@@ -212,7 +212,7 @@ with col2:
 with col3:
     st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"{recuento_facturas:,}")
+    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
 
 st.markdown("---")
 
@@ -297,5 +297,4 @@ st.markdown("---")
 # ==========================================
 # --- 4. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
 # ==========================================
-st.markdown("### 🚦 Matriz de Semaforización de Riesgo Financiero por Causales de Glosa")
-st.markdown("Clasificación de riesgo basada en el valor acumulado
+st.markdown("### 🚦 Matriz de Semaforización de Riesgo Financiero
