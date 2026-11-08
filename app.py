@@ -222,7 +222,7 @@ with col4:
 st.markdown("---")
 
 # ==========================================
-# --- 2. GRÁFICOS PRINCIPALES (ANILLO Y TOP 10 CAUSALES) ---
+# --- 2. GRÁFICOS PRINCIPALES (ANILLO TIPOLOGÍA Y % FRECUENCIA CÓDIGO GLOSA) ---
 # ==========================================
 col_g1, col_g2 = st.columns(2)
 
@@ -241,6 +241,31 @@ with col_g1:
     st.plotly_chart(fig_tip, use_container_width=True)
 
 with col_g2:
+    st.markdown("### 🔄 % Frecuencia de Glosa por Código (`Codigo_Glosa_Dev`)")
+    # Equivalente en Pandas a tu medida DAX (% Frecuencia de Glosa)
+    df_frec_glosa = df_filtrado.groupby('Codigo_Glosa_Dev').size().reset_index(name='Conteo')
+    total_conteo = df_filtrado.shape[0]
+    df_frec_glosa['Porcentaje'] = (df_frec_glosa['Conteo'] / total_conteo * 100) if total_conteo > 0 else 0
+    
+    fig_frec = px.pie(
+        df_frec_glosa,
+        names='Codigo_Glosa_Dev',
+        values='Porcentaje',
+        hole=0.5,
+        labels={'Codigo_Glosa_Dev': 'Código de Glosa', 'Porcentaje': '% Frecuencia'}
+    )
+    fig_frec.update_traces(textposition='inside', textinfo='percent+label')
+    fig_frec.update_layout(margin=dict(t=20, b=20, l=20, r=20))
+    st.plotly_chart(fig_frec, use_container_width=True)
+
+st.markdown("---")
+
+# ==========================================
+# --- 3. TOP 10 CAUSALES Y TENDENCIA TEMPORAL ---
+# ==========================================
+col_g3, col_g4 = st.columns(2)
+
+with col_g3:
     st.markdown("### ⚠️ Top 10 Causales Estandarizadas")
     df_causal = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
     df_causal = df_causal.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
@@ -255,14 +280,7 @@ with col_g2:
     fig_causal.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
     st.plotly_chart(fig_causal, use_container_width=True)
 
-st.markdown("---")
-
-# ==========================================
-# --- 3. EVOLUCIÓN TEMPORAL Y TOP 10 SERVICIOS ---
-# ==========================================
-col_g3, col_g4 = st.columns(2)
-
-with col_g3:
+with col_g4:
     st.markdown("### 📈 Tendencia de Glosas en el Tiempo")
     if not df_filtrado.empty and 'Fecha_Hora_Radicacion' in df_filtrado.columns:
         df_temp = df_filtrado.copy()
@@ -281,7 +299,14 @@ with col_g3:
     else:
         st.info("No hay datos suficientes para la tendencia temporal con los filtros actuales.")
 
-with col_g4:
+st.markdown("---")
+
+# ==========================================
+# --- 4. TOP 10 SERVICIOS Y MATRIZ DE SEMAFORIZACIÓN ---
+# ==========================================
+col_g5, col_g6 = st.columns(2)
+
+with col_g5:
     st.markdown("### 👁️ Top 10 Servicios con Mayor Afectación")
     df_serv = df_filtrado.groupby('Nombre del servicio ')['Valor_Glosa_Dev'].sum().reset_index()
     df_serv = df_serv.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
@@ -297,38 +322,34 @@ with col_g4:
     fig_serv.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
     st.plotly_chart(fig_serv, use_container_width=True)
 
-st.markdown("---")
-
-# ==========================================
-# --- 4. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
-# ==========================================
-st.markdown("### 🚦 Matriz de Semaforización de Riesgo Financiero por Causales de Glosa")
-st.markdown("Clasificación de riesgo basada en el valor acumulado de glosas por causal (🔴 Alto > $233M, 🟡 Medio $10M - $233M, 🟢 Bajo < $10M).")
-
-df_semaforo = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
-
-if not df_semaforo.empty and df_semaforo['Valor_Glosa_Dev'].sum() > 0:
-    res_riesgo = df_semaforo['Valor_Glosa_Dev'].apply(asignar_riesgo_y_color)
-    df_semaforo['Nivel de Riesgo'] = [r[0] for r in res_riesgo]
-    df_semaforo['Semaforo'] = [r[1] for r in res_riesgo]
+with col_g6:
+    st.markdown("### 🚦 Matriz de Semaforización de Riesgo Financiero")
+    st.markdown("Clasificación por valor acumulado (🔴 Alto > $233M, 🟡 Medio $10M-$233M, 🟢 Bajo < $10M).")
     
-    suma_total_glosas = df_semaforo['Valor_Glosa_Dev'].sum()
-    
-    df_semaforo = df_semaforo.sort_values(by='Valor_Glosa_Dev', ascending=False)
-    df_semaforo['Valor_Glosa_Dev'] = df_semaforo['Valor_Glosa_Dev'].map('${:,.0f}'.format)
-    
-    fila_total = pd.DataFrame({
-        'Semaforo': ['📊'],
-        'Causal_Estandarizada': ['**TOTAL GENERAL**'],
-        'Nivel de Riesgo': ['-'],
-        'Valor_Glosa_Dev': [f'${suma_total_glosas:,.0f}']
-    })
-    df_semaforo_final = pd.concat([df_semaforo, fila_total], ignore_index=True)
+    df_semaforo = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
 
-    st.dataframe(
-        df_semaforo_final[['Semaforo', 'Causal_Estandarizada', 'Nivel de Riesgo', 'Valor_Glosa_Dev']],
-        use_container_width=True,
-        hide_index=True
-    )
-else:
-    st.info("ℹ️ No hay registros de glosas disponibles con los filtros seleccionados.")
+    if not df_semaforo.empty and df_semaforo['Valor_Glosa_Dev'].sum() > 0:
+        res_riesgo = df_semaforo['Valor_Glosa_Dev'].apply(asignar_riesgo_y_color)
+        df_semaforo['Nivel de Riesgo'] = [r[0] for r in res_riesgo]
+        df_semaforo['Semaforo'] = [r[1] for r in res_riesgo]
+        
+        suma_total_glosas = df_semaforo['Valor_Glosa_Dev'].sum()
+        
+        df_semaforo = df_semaforo.sort_values(by='Valor_Glosa_Dev', ascending=False)
+        df_semaforo['Valor_Glosa_Dev'] = df_semaforo['Valor_Glosa_Dev'].map('${:,.0f}'.format)
+        
+        fila_total = pd.DataFrame({
+            'Semaforo': ['📊'],
+            'Causal_Estandarizada': ['**TOTAL GENERAL**'],
+            'Nivel de Riesgo': ['-'],
+            'Valor_Glosa_Dev': [f'${suma_total_glosas:,.0f}']
+        })
+        df_semaforo_final = pd.concat([df_semaforo, fila_total], ignore_index=True)
+
+        st.dataframe(
+            df_semaforo_final[['Semaforo', 'Causal_Estandarizada', 'Nivel de Riesgo', 'Valor_Glosa_Dev']],
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("ℹ️ No hay registros disponibles con los filtros seleccionados.")
