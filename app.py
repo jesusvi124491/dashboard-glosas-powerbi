@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general, título grande y barra lateral con ancho de 800px
+# Estilo visual general, título grande y barra lateral con ancho de 1000px
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -29,12 +29,12 @@ st.markdown("""
         color: #475569;
         margin-bottom: 30px;
     }
-    /* Ancho de 800px para la barra lateral y superposición flotante */
+    /* Ancho de 1000px para la barra lateral y superposición flotante */
     [data-testid="stSidebar"] {
-        min-width: 800px !important;
-        max-width: 800px !important;
+        min-width: 1000px !important;
+        max-width: 1000px !important;
         z-index: 999999 !important;
-        box-shadow: 5px 0px 25px rgba(0, 0, 0, 0.25);
+        box-shadow: 5px 0px 30px rgba(0, 0, 0, 0.3);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -86,7 +86,7 @@ st.markdown('<div class="subtitle-banner">S.O. Servicios Médicos Oftalmológico
 st.markdown("---")
 
 # ==========================================
-# --- PANEL LATERAL DE FILTROS (800PX / Z-INDEX) ---
+# --- PANEL LATERAL DE FILTROS (1000PX / Z-INDEX) ---
 # ==========================================
 st.sidebar.header("🎛️ Filtros Interactivos")
 st.sidebar.markdown("---")
@@ -231,103 +231,4 @@ with col_g1:
     fig_tip = px.pie(
         df_tipologia, 
         names='tipologia', 
-        values='Valor_Glosa_Dev', 
-        hole=0.5,
-        labels={'tipologia': 'Tipología', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
-    )
-    fig_tip.update_traces(textposition='inside', textinfo='percent+label')
-    fig_tip.update_layout(margin=dict(t=20, b=20, l=20, r=20))
-    st.plotly_chart(fig_tip, use_container_width=True)
-
-with col_g2:
-    st.markdown("### ⚠️ Top 10 Causales Estandarizadas")
-    df_causal = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
-    df_causal = df_causal.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
-    fig_causal = px.bar(
-        df_causal, 
-        y='Causal_Estandarizada', 
-        x='Valor_Glosa_Dev', 
-        orientation='h',
-        text_auto='.2s',
-        labels={'Causal_Estandarizada': 'Causal Estandarizada', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
-    )
-    fig_causal.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
-    st.plotly_chart(fig_causal, use_container_width=True)
-
-st.markdown("---")
-
-# ==========================================
-# --- 3. EVOLUCIÓN TEMPORAL Y TOP 10 SERVICIOS ---
-# ==========================================
-col_g3, col_g4 = st.columns(2)
-
-with col_g3:
-    st.markdown("### 📈 Tendencia de Glosas en el Tiempo")
-    if not df_filtrado.empty and 'Fecha_Hora_Radicacion' in df_filtrado.columns:
-        df_temp = df_filtrado.copy()
-        df_temp['Periodo'] = df_temp['Fecha_Hora_Radicacion'].dt.to_period('M').astype(str)
-        df_temp_grouped = df_temp.groupby('Periodo')['Valor_Glosa_Dev'].sum().reset_index()
-        
-        fig_temp = px.line(
-            df_temp_grouped, 
-            x='Periodo', 
-            y='Valor_Glosa_Dev',
-            markers=True,
-            labels={'Periodo': 'Mes de Radicación', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
-        )
-        fig_temp.update_layout(xaxis_tickangle=-45, margin=dict(t=20, b=20, l=20, r=20))
-        st.plotly_chart(fig_temp, use_container_width=True)
-    else:
-        st.info("No hay datos suficientes para la tendencia temporal con los filtros actuales.")
-
-with col_g4:
-    st.markdown("### 👁️ Top 10 Servicios con Mayor Afectación")
-    df_serv = df_filtrado.groupby('Nombre del servicio ')['Valor_Glosa_Dev'].sum().reset_index()
-    df_serv = df_serv.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
-    
-    fig_serv = px.bar(
-        df_serv,
-        x='Valor_Glosa_Dev',
-        y='Nombre del servicio ',
-        orientation='h',
-        text_auto='.2s',
-        labels={'Nombre del servicio ': 'Servicio', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
-    )
-    fig_serv.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
-    st.plotly_chart(fig_serv, use_container_width=True)
-
-st.markdown("---")
-
-# ==========================================
-# --- 4. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
-# ==========================================
-st.markdown("### 🚦 Matriz de Semaforización de Riesgo Financiero por Causales de Glosa")
-st.markdown("Clasificación de riesgo basada en el valor acumulado de glosas por causal (🔴 Alto > $233M, 🟡 Medio $10M - $233M, 🟢 Bajo < $10M).")
-
-df_semaforo = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
-
-if not df_semaforo.empty and df_semaforo['Valor_Glosa_Dev'].sum() > 0:
-    res_riesgo = df_semaforo['Valor_Glosa_Dev'].apply(asignar_riesgo_y_color)
-    df_semaforo['Nivel de Riesgo'] = [r[0] for r in res_riesgo]
-    df_semaforo['Semaforo'] = [r[1] for r in res_riesgo]
-    
-    suma_total_glosas = df_semaforo['Valor_Glosa_Dev'].sum()
-    
-    df_semaforo = df_semaforo.sort_values(by='Valor_Glosa_Dev', ascending=False)
-    df_semaforo['Valor_Glosa_Dev'] = df_semaforo['Valor_Glosa_Dev'].map('${:,.0f}'.format)
-    
-    fila_total = pd.DataFrame({
-        'Semaforo': ['📊'],
-        'Causal_Estandarizada': ['**TOTAL GENERAL**'],
-        'Nivel de Riesgo': ['-'],
-        'Valor_Glosa_Dev': [f'${suma_total_glosas:,.0f}']
-    })
-    df_semaforo_final = pd.concat([df_semaforo, fila_total], ignore_index=True)
-
-    st.dataframe(
-        df_semaforo_final[['Semaforo', 'Causal_Estandarizada', 'Nivel de Riesgo', 'Valor_Glosa_Dev']],
-        use_container_width=True,
-        hide_index=True
-    )
-else:
-    st.info("ℹ️ No hay registros de glosas disponibles con los filtros seleccionados.")
+        values='Valor_Glosa_
