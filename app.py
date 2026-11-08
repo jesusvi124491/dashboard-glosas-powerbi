@@ -36,32 +36,70 @@ valor_bruto_total = df['Valor_Glosa_Dev'].sum()
 df_depurado_global = df[df['item_repetido'] == False]
 valor_depurado_total = df_depurado_global['Valor_Glosa_Dev'].sum()
 
-# --- BARRA LATERAL (FILTROS GLOBALES E INTERACTIVOS) ---
+# ==========================================
+# --- BARRA LATERAL: FILTROS GLOBALES ---
+# ==========================================
 st.sidebar.header("🔍 Filtros Globales del Tablero")
 
 df_base = df[df['item_repetido'] == False].copy()
 
-# 1. Filtro por Tipología (Interactivo en cascada)
+# 1. Filtro por Tipología
 tipologias = ["Todas"] + list(df_base['tipologia'].unique())
 tipologia_sel = st.sidebar.selectbox("Seleccione Tipología", tipologias)
 
-# 2. Filtro de Fecha de Atención amigable y fácil de limpiar
-st.sidebar.subheader("📅 Rango de Fechas de Atención")
-usar_filtro_fecha = st.sidebar.checkbox("Activar filtro por fechas de atención", value=False)
+# 2. Filtro de Fecha de Atención (Rango amigable con checkbox de activación)
+st.sidebar.markdown("---")
+st.sidebar.subheader("📅 Fecha de Atención")
+usar_filtro_fecha = st.sidebar.checkbox("Activar filtro por fecha de atención", value=False)
 
 f_inicio, f_fin = None, None
 if usar_filtro_fecha:
     min_f = df_base['Fecha_Atencion'].min().date()
     max_f = df_base['Fecha_Atencion'].max().date()
-    rango_f = st.sidebar.date_input("Seleccione rango", value=(min_f, max_f), min_value=min_f, max_value=max_f)
+    rango_f = st.sidebar.date_input("Rango de Atención", value=(min_f, max_f), min_value=min_f, max_value=max_f)
     if len(rango_f) == 2:
         f_inicio, f_fin = rango_f
 
 # 3. Filtro por Causal Estandarizada
+st.sidebar.markdown("---")
 causales = ["Todas"] + list(df_base['Causal_Estandarizada'].unique())
 causal_sel = st.sidebar.selectbox("Seleccione Causal Estandarizada", causales)
 
-# --- APLICAR FILTROS GLOBALES EN CASCADA A TODO EL DASHBOARD ---
+# 4. Filtro por Rango de Fecha de Radicación (Tendencia Temporal)
+st.sidebar.markdown("---")
+st.sidebar.subheader("📈 Rango de Radicación (Tendencia)")
+usar_filtro_rad = st.sidebar.checkbox("Activar filtro por radicación", value=False)
+
+rad_inicio, rad_fin = None, None
+if usar_filtro_rad:
+    min_rad = df_base['Fecha_Hora_Radicacion'].min().date()
+    max_rad = df_base['Fecha_Hora_Radicacion'].max().date()
+    rango_rad = st.sidebar.date_input("Rango de Radicación", value=(min_rad, max_rad), min_value=min_rad, max_value=max_rad)
+    if len(rango_rad) == 2:
+        rad_inicio, rad_fin = rango_rad
+
+# 5. Filtro Específico de Servicios
+st.sidebar.markdown("---")
+st.sidebar.subheader("👁️ Filtrar Servicios Específicos")
+servicios_unicos = list(df_base['Nombre del servicio '].unique())
+servicio_sel_filtro = st.sidebar.multiselect(
+    "Seleccione Servicio(s)",
+    options=servicios_unicos,
+    default=[]
+)
+
+# 6. Filtro para la Matriz de Semaforización (Nivel de Riesgo)
+st.sidebar.markdown("---")
+st.sidebar.subheader("🚦 Matriz de Semaforización")
+filtro_riesgo_sel = st.sidebar.selectbox(
+    "Filtrar por Nivel de Riesgo",
+    ["Todos", "Alto (Rojo)", "Medio (Amarillo)", "Bajo (Verde)"]
+)
+
+
+# ==========================================
+# --- APLICAR FILTROS EN CASCADA ---
+# ==========================================
 df_filtrado = df_base.copy()
 
 if tipologia_sel != "Todas":
@@ -76,7 +114,10 @@ if usar_filtro_fecha and f_inicio and f_fin:
         (df_filtrado['Fecha_Atencion'].dt.date <= f_fin)
     ]
 
+
+# ==========================================
 # --- CUERPO PRINCIPAL ---
+# ==========================================
 st.title("📊 Tablero Gerencial: Analítica de Glosas")
 st.subheader("S.O. Servicios Médicos Oftalmológicos (Bogotá)")
 st.markdown("---")
@@ -140,6 +181,12 @@ with col_g3:
     st.markdown("### 📈 Tendencia de Glosas en el Tiempo")
     if not df_filtrado.empty and 'Fecha_Hora_Radicacion' in df_filtrado.columns:
         df_temp = df_filtrado.copy()
+        if usar_filtro_rad and rad_inicio and rad_fin:
+            df_temp = df_temp[
+                (df_temp['Fecha_Hora_Radicacion'].dt.date >= rad_inicio) & 
+                (df_temp['Fecha_Hora_Radicacion'].dt.date <= rad_fin)
+            ]
+        
         df_temp['Periodo'] = df_temp['Fecha_Hora_Radicacion'].dt.to_period('M').astype(str)
         df_temp_grouped = df_temp.groupby('Periodo')['Valor_Glosa_Dev'].sum().reset_index()
         
@@ -153,11 +200,15 @@ with col_g3:
         fig_temp.update_layout(xaxis_tickangle=-45, margin=dict(t=20, b=20, l=20, r=20))
         st.plotly_chart(fig_temp, use_container_width=True)
     else:
-        st.info("No hay datos suficientes para la tendencia temporal con los filtros actuales.")
+        st.info("No hay datos suficientes para la tendencia temporal.")
 
 with col_g4:
     st.markdown("### 👁️ Top 10 Servicios con Mayor Afectación")
-    df_serv = df_filtrado.groupby('Nombre del servicio ')['Valor_Glosa_Dev'].sum().reset_index()
+    df_serv_base = df_filtrado.copy()
+    if servicio_sel_filtro:
+        df_serv_base = df_serv_base[df_serv_base['Nombre del servicio '].isin(servicio_sel_filtro)]
+        
+    df_serv = df_serv_base.groupby('Nombre del servicio ')['Valor_Glosa_Dev'].sum().reset_index()
     df_serv = df_serv.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
     
     fig_serv = px.bar(
@@ -192,13 +243,17 @@ if not df_semaforo.empty:
     df_semaforo['Nivel de Riesgo'] = [r[0] for r in res_riesgo]
     df_semaforo['Semaforo'] = [r[1] for r in res_riesgo]
     
-    # Guardar la suma total antes de formatear como texto
+    # Aplicar filtro lateral de semaforización si está activo
+    if filtro_riesgo_sel != "Todos":
+        df_semaforo = df_semaforo[df_semaforo['Nivel de Riesgo'] == filtro_riesgo_sel]
+    
+    # Suma total general sobre los datos filtrados actuales
     suma_total_glosas = df_semaforo['Valor_Glosa_Dev'].sum()
     
     df_semaforo = df_semaforo.sort_values(by='Valor_Glosa_Dev', ascending=False)
     df_semaforo['Valor_Glosa_Dev'] = df_semaforo['Valor_Glosa_Dev'].map('${:,.0f}'.format)
     
-    # Agregar fila de totales
+    # Fila de totales
     fila_total = pd.DataFrame({
         'Semaforo': ['📊'],
         'Causal_Estandarizada': ['**TOTAL GENERAL**'],
