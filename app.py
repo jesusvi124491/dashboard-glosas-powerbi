@@ -29,6 +29,10 @@ st.markdown("""
         color: #475569;
         margin-bottom: 30px;
     }
+    /* Estilo para mejorar la lectura de los selectores en la barra lateral */
+    .sidebar .stSelectbox, .sidebar .stMultiSelect, .sidebar .stDateInput {
+        margin-bottom: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -60,25 +64,16 @@ min_f_rad = df_base['Fecha_Hora_Radicacion'].min().date()
 max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
 
 # ==========================================
-# --- FUNCIONES DE RESTABLECIMIENTO (RESET) ---
+# --- GESTIÓN SEGURA DE ESTADOS Y RESETEOS ---
 # ==========================================
-def reset_global():
-    st.session_state.tipologia_sel = "Todas"
-    st.session_state.causal_sel = "Todas"
-    st.session_state.riesgo_sel = "Todos"
-    st.session_state.servicios_sel = []
-    st.session_state.widget_rango_atencion = (min_f_at, max_f_at)
-    st.session_state.widget_rango_radicacion = (min_f_rad, max_f_rad)
+if 'trigger_reset_global' not in st.session_state:
     st.session_state.trigger_reset_global = False
 
-def reset_atencion():
-    st.session_state.widget_rango_atencion = (min_f_at, max_f_at)
-    st.session_state.trigger_reset_at = False
-
-def reset_radicacion():
-    st.session_state.widget_rango_radicacion = (min_f_rad, max_f_rad)
-    st.session_state.trigger_reset_rad = False
-
+if st.session_state.trigger_reset_global:
+    for k in ['tipologia_sel', 'causal_sel', 'riesgo_sel', 'servicios_sel', 'widget_rango_atencion', 'widget_rango_radicacion']:
+        if k in st.session_state:
+            del st.session_state[k]
+    st.session_state.trigger_reset_global = False
 
 # ==========================================
 # --- TÍTULO PRINCIPAL (GRANDE Y CENTRADO) ---
@@ -86,7 +81,6 @@ def reset_radicacion():
 st.markdown('<div class="main-title">📊 Tablero Gerencial: Analítica de Glosas</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-banner">S.O. Servicios Médicos Oftalmológicos (Bogotá)</div>', unsafe_allow_html=True)
 st.markdown("---")
-
 
 # ==========================================
 # --- PANEL LATERAL DE FILTROS (SIDEBAR) ---
@@ -108,7 +102,7 @@ riesgo_sel = st.sidebar.selectbox("🚦 Filtrar por Nivel de Riesgo", riesgo_dis
 
 st.sidebar.markdown("---")
 
-# 4. Filtro por Servicios Específicos
+# 4. Filtro de Servicios Específicos
 servicios_disp = list(df_base['Nombre del servicio '].unique())
 servicios_sel = st.sidebar.multiselect("👁️ Filtrar Servicios Específicos", options=servicios_disp, key='servicios_sel')
 
@@ -128,7 +122,8 @@ with sub_fa1:
     )
 with sub_fa2:
     if st.button("🔄", key="btn_reset_at", help="Restablecer Atención"):
-        reset_atencion()
+        if 'widget_rango_atencion' in st.session_state:
+            del st.session_state['widget_rango_atencion']
         st.rerun()
 
 st.sidebar.markdown("---")
@@ -147,14 +142,15 @@ with sub_fr1:
     )
 with sub_fr2:
     if st.button("🔄", key="btn_reset_rad", help="Restablecer Radicación"):
-        reset_radicacion()
+        if 'widget_rango_radicacion' in st.session_state:
+            del st.session_state['widget_rango_radicacion']
         st.rerun()
 
 st.sidebar.markdown("---")
 
-# Botón de Restablecimiento Global en la barra lateral
+# 7. Botón de Restablecimiento Global
 if st.sidebar.button("🔄 Restablecer Todos los Filtros", use_container_width=True):
-    reset_global()
+    st.session_state.trigger_reset_global = True
     st.rerun()
 
 
@@ -217,7 +213,7 @@ with col2:
 with col3:
     st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"{recuento_facturas:,}")
+    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
 
 st.markdown("---")
 
