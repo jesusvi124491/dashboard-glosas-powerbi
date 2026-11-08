@@ -133,7 +133,7 @@ with col_f5:
 
 with col_f6:
     st.markdown("Rango de Fecha de Radicacion")
-    sub_fr1, sub_fr2 = st.sidebar.columns([4, 1]) if 'sidebar' in dir(st) else st.columns([4, 1]) # fallback
+    sub_fr1, sub_fr2 = st.columns([4, 1])
     with sub_fr1:
         rango_radicacion = st.date_input(
             "Radicacion",
@@ -175,3 +175,12 @@ if st.session_state.get('servicios_sel', []):
 # Validación segura del rango de atención
 val_at = st.session_state.get('widget_rango_atencion')
 if val_at and isinstance(val_at, (list, tuple)) and len(val_at) == 2:
+    f_ini, f_fin = val_at
+    df_filtrado = df_filtrado[
+        (df_filtrado['Fecha_Atencion'].dt.date >= f_ini) & 
+        (df_filtrado['Fecha_Atencion'].dt.date <= f_fin)
+    ]
+
+# Validación segura del rango de radicación
+val_rad = st.session_state.get('widget_rango_radicacion')
+if val_rad and isinstance(val_rad, (list, tuple)) and
