@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general, título grande y barra lateral con ancho de 1000px
+# Estilo visual general, título grande y barra lateral de 1000px
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -29,7 +29,7 @@ st.markdown("""
         color: #475569;
         margin-bottom: 30px;
     }
-    /* Ancho de 1000px para la barra lateral y superposición flotante */
+    /* Ancho de 1000px para la barra lateral flotante */
     [data-testid="stSidebar"] {
         min-width: 1000px !important;
         max-width: 1000px !important;
@@ -53,13 +53,10 @@ except Exception as e:
     st.error(f"Error al cargar el archivo de datos: {e}")
     st.stop()
 
-# --- CÁLCULOS BASE ---
+# --- CÁLCULOS BASE EXACTOS ---
 valor_bruto_total = df['Valor_Glosa_Dev'].sum()
-df_depurado_global = df[df['item_repetido'] == False]
-valor_depurado_total = df_depurado_global['Valor_Glosa_Dev'].sum()
-
-# Base de datos depurada estricta
 df_base = df[df['item_repetido'] == False].copy()
+valor_depurado_total = df_base['Valor_Glosa_Dev'].sum()
 
 min_f_at = df_base['Fecha_Atencion'].min().date()
 max_f_at = df_base['Fecha_Atencion'].max().date()
@@ -86,7 +83,7 @@ st.markdown('<div class="subtitle-banner">S.O. Servicios Médicos Oftalmológico
 st.markdown("---")
 
 # ==========================================
-# --- PANEL LATERAL DE FILTROS (1000PX / Z-INDEX) ---
+# --- PANEL LATERAL DE FILTROS (1000PX) ---
 # ==========================================
 st.sidebar.header("🎛️ Filtros Interactivos")
 st.sidebar.markdown("---")
@@ -203,7 +200,6 @@ if st.session_state.get('riesgo_sel', 'Todos') != "Todos":
 # ==========================================
 # --- 1. TARJETAS DE MÉTRICAS (KPIs) ---
 # ==========================================
-val_bruto_filtrado = df['Valor_Glosa_Dev'].sum() 
 val_depurado_filtrado = df_filtrado['Valor_Glosa_Dev'].sum()
 impacto_depurado = (val_depurado_filtrado / valor_depurado_total * 100) if valor_depurado_total > 0 else 0
 recuento_facturas = df_filtrado['Numero_Factura'].nunique()
@@ -302,32 +298,4 @@ st.markdown("---")
 # --- 4. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
 # ==========================================
 st.markdown("### 🚦 Matriz de Semaforización de Riesgo Financiero por Causales de Glosa")
-st.markdown("Clasificación de riesgo basada en el valor acumulado de glosas por causal (🔴 Alto > $233M, 🟡 Medio $10M - $233M, 🟢 Bajo < $10M).")
-
-df_semaforo = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
-
-if not df_semaforo.empty and df_semaforo['Valor_Glosa_Dev'].sum() > 0:
-    res_riesgo = df_semaforo['Valor_Glosa_Dev'].apply(asignar_riesgo_y_color)
-    df_semaforo['Nivel de Riesgo'] = [r[0] for r in res_riesgo]
-    df_semaforo['Semaforo'] = [r[1] for r in res_riesgo]
-    
-    suma_total_glosas = df_semaforo['Valor_Glosa_Dev'].sum()
-    
-    df_semaforo = df_semaforo.sort_values(by='Valor_Glosa_Dev', ascending=False)
-    df_semaforo['Valor_Glosa_Dev'] = df_semaforo['Valor_Glosa_Dev'].map('${:,.0f}'.format)
-    
-    fila_total = pd.DataFrame({
-        'Semaforo': ['📊'],
-        'Causal_Estandarizada': ['**TOTAL GENERAL**'],
-        'Nivel de Riesgo': ['-'],
-        'Valor_Glosa_Dev': [f'${suma_total_glosas:,.0f}']
-    })
-    df_semaforo_final = pd.concat([df_semaforo, fila_total], ignore_index=True)
-
-    st.dataframe(
-        df_semaforo_final[['Semaforo', 'Causal_Estandarizada', 'Nivel de Riesgo', 'Valor_Glosa_Dev']],
-        use_container_width=True,
-        hide_index=True
-    )
-else:
-    st.info("ℹ️ No hay registros de glosas disponibles con los filtros seleccionados.")
+st.markdown("Clasificación de riesgo basada en el valor acumulado
