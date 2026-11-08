@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general, título grande y comportamiento flotante/expansible de la barra lateral de 1000px
+# Estilo visual general y control estricto de la barra lateral flotante de 1000px y expansión total
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -30,24 +30,27 @@ st.markdown("""
         margin-bottom: 30px;
     }
     
-    /* Configuración de la barra lateral flotante (1000px de ancho y efecto z-index) */
-    [data-testid="stSidebar"] {
+    /* 1. Forzar ancho fijo de 1000px y superposición flotante sobre el contenido (Z-index) */
+    section[data-testid="stSidebar"] {
+        width: 1000px !important;
         min-width: 1000px !important;
         max-width: 1000px !important;
         z-index: 999999 !important;
-        box-shadow: 5px 0px 30px rgba(0, 0, 0, 0.3);
-        transition: transform 0.3s ease-in-out;
+        box-shadow: 10px 0px 30px rgba(0, 0, 0, 0.35);
+        transition: all 0.3s ease-in-out !important;
     }
 
-    /* Cuando la barra lateral está contraída, se oculta completamente fuera de la pantalla */
-    [data-testid="stSidebar"][aria-expanded="false"] {
-        transform: translateX(-1000px) !important;
+    /* 2. Cuando la barra lateral se cierra, se desplaza totalmente fuera de la pantalla */
+    section[data-testid="stSidebar"][aria-expanded="false"] {
         margin-left: -1000px !important;
+        transform: translateX(-1000px) !important;
     }
 
-    /* Ajuste para que el contenido principal ocupe toda la pantalla al cerrar la barra */
-    [data-testid="stMain"] {
-        width: 100% !important;
+    /* 3. Forzar que el contenedor principal ocupe toda la anchura de la pantalla sin dejar espacios vacíos */
+    .block-container {
+        max-width: 100% !important;
+        padding-left: 3rem !important;
+        padding-right: 3rem !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -92,7 +95,7 @@ if st.session_state.trigger_reset_global:
 # --- TÍTULO PRINCIPAL (GRANDE Y CENTRADO) ---
 # ==========================================
 st.markdown('<div class="main-title">Tablero Gerencial: Analitica de Glosas</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-banner">S.O. Servicios Medicos Oftalmogicos (Bogota)</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-banner">S.O. Servicios Medicos Oftalmologicos (Bogota)</div>', unsafe_allow_html=True)
 st.markdown("---")
 
 # ==========================================
