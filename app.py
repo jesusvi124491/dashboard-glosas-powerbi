@@ -78,42 +78,42 @@ if st.session_state.trigger_reset_global:
 # ==========================================
 # --- TÍTULO PRINCIPAL (GRANDE Y CENTRADO) ---
 # ==========================================
-st.markdown('<div class="main-title">📊 Tablero Gerencial: Analítica de Glosas</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-banner">S.O. Servicios Médicos Oftalmológicos (Bogotá)</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">Tablero Gerencial: Analitica de Glosas</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-banner">S.O. Servicios Medicos Oftalmologicos (Bogota)</div>', unsafe_allow_html=True)
 st.markdown("---")
 
 # ==========================================
 # --- PANEL LATERAL DE FILTROS (1000PX) ---
 # ==========================================
-st.sidebar.header("🎛️ Filtros Interactivos")
+st.sidebar.header("Filtros Interactivos")
 st.sidebar.markdown("---")
 
 # 1. Filtro por Tipología
 tipologias_disp = ["Todas"] + list(df_base['tipologia'].unique())
-tipologia_sel = st.sidebar.selectbox("📌 Filtrar por Tipología", tipologias_disp, key='tipologia_sel')
+tipologia_sel = st.sidebar.selectbox("Filtrar por Tipología", tipologias_disp, key='tipologia_sel')
 
 # 2. Filtro por Causal Estandarizada
 causales_disp = ["Todas"] + list(df_base['Causal_Estandarizada'].unique())
-causal_sel = st.sidebar.selectbox("⚠️ Filtrar por Causal Estandarizada", causales_disp, key='causal_sel')
+causal_sel = st.sidebar.selectbox("Filtrar por Causal Estandarizada", causales_disp, key='causal_sel')
 
 # 3. Filtro por Nivel de Riesgo (Semáforo)
 riesgo_disp = ["Todos", "Alto (Rojo)", "Medio (Amarillo)", "Bajo (Verde)"]
-riesgo_sel = st.sidebar.selectbox("🚦 Filtrar por Nivel de Riesgo", riesgo_disp, key='riesgo_sel')
+riesgo_sel = st.sidebar.selectbox("Filtrar por Nivel de Riesgo", riesgo_disp, key='riesgo_sel')
 
 st.sidebar.markdown("---")
 
 # 4. Filtro de Servicios Específicos
 servicios_disp = list(df_base['Nombre del servicio '].unique())
-servicios_sel = st.sidebar.multiselect("👁️ Filtrar Servicios Específicos", options=servicios_disp, key='servicios_sel')
+servicios_sel = st.sidebar.multiselect("Filtrar Servicios Especificos", options=servicios_disp, key='servicios_sel')
 
 st.sidebar.markdown("---")
 
 # 5. Rango de Fecha de Atención
-st.sidebar.markdown("📅 **Rango de Fecha de Atención**")
+st.sidebar.markdown("Rango de Fecha de Atencion")
 sub_fa1, sub_fa2 = st.sidebar.columns([4, 1])
 with sub_fa1:
     rango_atencion = st.date_input(
-        "Atención",
+        "Atencion",
         value=st.session_state.get('widget_rango_atencion', (min_f_at, max_f_at)),
         min_value=min_f_at,
         max_value=max_f_at,
@@ -121,7 +121,7 @@ with sub_fa1:
         label_visibility="collapsed"
     )
 with sub_fa2:
-    if st.button("🔄", key="btn_reset_at", help="Restablecer Atención"):
+    if st.button("🔄", key="btn_reset_at", help="Restablecer Atencion"):
         if 'widget_rango_atencion' in st.session_state:
             del st.session_state['widget_rango_atencion']
         st.rerun()
@@ -129,11 +129,11 @@ with sub_fa2:
 st.sidebar.markdown("---")
 
 # 6. Rango de Fecha de Radicación
-st.sidebar.markdown("📈 **Rango de Fecha de Radicación**")
+st.sidebar.markdown("Rango de Fecha de Radicacion")
 sub_fr1, sub_fr2 = st.sidebar.columns([4, 1])
 with sub_fr1:
     rango_radicacion = st.date_input(
-        "Radicación",
+        "Radicacion",
         value=st.session_state.get('widget_rango_radicacion', (min_f_rad, max_f_rad)),
         min_value=min_f_rad,
         max_value=max_f_rad,
@@ -141,7 +141,7 @@ with sub_fr1:
         label_visibility="collapsed"
     )
 with sub_fr2:
-    if st.button("🔄", key="btn_reset_rad", help="Restablecer Radicación"):
+    if st.button("🔄", key="btn_reset_rad", help="Restablecer Radicacion"):
         if 'widget_rango_radicacion' in st.session_state:
             del st.session_state['widget_rango_radicacion']
         st.rerun()
@@ -149,7 +149,7 @@ with sub_fr2:
 st.sidebar.markdown("---")
 
 # 7. Botón de Restablecimiento Global
-if st.sidebar.button("🔄 Restablecer Todos los Filtros", use_container_width=True):
+if st.sidebar.button("Restablecer Todos los Filtros", use_container_width=True):
     st.session_state.trigger_reset_global = True
     st.rerun()
 
@@ -212,7 +212,7 @@ with col2:
 with col3:
     st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
+    st.metric("Recuento de Facturas", f"{recuento_facturas:,}")
 
 st.markdown("---")
 
@@ -222,7 +222,7 @@ st.markdown("---")
 col_g1, col_g2 = st.columns(2)
 
 with col_g1:
-    st.markdown("### 📌 Valor Depurado Real por Tipología (Anillo)")
+    st.markdown("### Valor Depurado Real por Tipología (Anillo)")
     df_tipologia = df_filtrado.groupby('tipologia')['Valor_Glosa_Dev'].sum().reset_index()
     fig_tip = px.pie(
         df_tipologia, 
@@ -236,7 +236,7 @@ with col_g1:
     st.plotly_chart(fig_tip, use_container_width=True)
 
 with col_g2:
-    st.markdown("### ⚠️ Top 10 Causales Estandarizadas")
+    st.markdown("### Top 10 Causales Estandarizadas")
     df_causal = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
     df_causal = df_causal.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
     fig_causal = px.bar(
@@ -258,7 +258,7 @@ st.markdown("---")
 col_g3, col_g4 = st.columns(2)
 
 with col_g3:
-    st.markdown("### 📈 Tendencia de Glosas en el Tiempo")
+    st.markdown("### Tendencia de Glosas en el Tiempo")
     if not df_filtrado.empty and 'Fecha_Hora_Radicacion' in df_filtrado.columns:
         df_temp = df_filtrado.copy()
         df_temp['Periodo'] = df_temp['Fecha_Hora_Radicacion'].dt.to_period('M').astype(str)
@@ -277,7 +277,7 @@ with col_g3:
         st.info("No hay datos suficientes para la tendencia temporal con los filtros actuales.")
 
 with col_g4:
-    st.markdown("### 👁️ Top 10 Servicios con Mayor Afectación")
+    st.markdown("### Top 10 Servicios con Mayor Afectación")
     df_serv = df_filtrado.groupby('Nombre del servicio ')['Valor_Glosa_Dev'].sum().reset_index()
     df_serv = df_serv.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
     
@@ -288,13 +288,3 @@ with col_g4:
         orientation='h',
         text_auto='.2s',
         labels={'Nombre del servicio ': 'Servicio', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
-    )
-    fig_serv.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
-    st.plotly_chart(fig_serv, use_container_width=True)
-
-st.markdown("---")
-
-# ==========================================
-# --- 4. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
-# ==========================================
-st.markdown("### 🚦 Matriz de Semaforización de Riesgo Financiero
