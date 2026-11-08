@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general, título grande y barra lateral de 1000px flotante
+# Estilo visual general, título grande y comportamiento flotante/expansible de la barra lateral de 1000px
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -29,12 +29,25 @@ st.markdown("""
         color: #475569;
         margin-bottom: 30px;
     }
-    /* Ancho de 1000px para la barra lateral y superposición flotante z-index */
+    
+    /* Configuración de la barra lateral flotante (1000px de ancho y efecto z-index) */
     [data-testid="stSidebar"] {
         min-width: 1000px !important;
         max-width: 1000px !important;
         z-index: 999999 !important;
         box-shadow: 5px 0px 30px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    /* Cuando la barra lateral está contraída, se oculta completamente fuera de la pantalla */
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        transform: translateX(-1000px) !important;
+        margin-left: -1000px !important;
+    }
+
+    /* Ajuste para que el contenido principal ocupe toda la pantalla al cerrar la barra */
+    [data-testid="stMain"] {
+        width: 100% !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -79,7 +92,7 @@ if st.session_state.trigger_reset_global:
 # --- TÍTULO PRINCIPAL (GRANDE Y CENTRADO) ---
 # ==========================================
 st.markdown('<div class="main-title">Tablero Gerencial: Analitica de Glosas</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-banner">S.O. Servicios Medicos Oftalmologicos (Bogota)</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-banner">S.O. Servicios Medicos Oftalmogicos (Bogota)</div>', unsafe_allow_html=True)
 st.markdown("---")
 
 # ==========================================
