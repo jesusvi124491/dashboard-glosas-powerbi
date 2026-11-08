@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo visual general, título grande y ampliación del ancho de la barra lateral
+# Estilo visual general, título grande y barra lateral flotante tipo Z-Index con ancho superior
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -29,10 +29,12 @@ st.markdown("""
         color: #475569;
         margin-bottom: 30px;
     }
-    /* Ampliar el ancho de la barra lateral para que los textos largos no se recorten */
+    /* Estilo flotante superpuesto (z-index) y ancho superior para la barra lateral */
     [data-testid="stSidebar"] {
-        min-width: 400px !important;
-        max-width: 400px !important;
+        min-width: 480px !important;
+        max-width: 480px !important;
+        z-index: 999999 !important;
+        box-shadow: 5px 0px 15px rgba(0, 0, 0, 0.15);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -84,7 +86,7 @@ st.markdown('<div class="subtitle-banner">S.O. Servicios Médicos Oftalmológico
 st.markdown("---")
 
 # ==========================================
-# --- PANEL LATERAL DE FILTROS (SIDEBAR AMPLIADO) ---
+# --- PANEL LATERAL DE FILTROS (FLOTANTE / Z-INDEX) ---
 # ==========================================
 st.sidebar.header("🎛️ Filtros Interactivos")
 st.sidebar.markdown("---")
