@@ -270,4 +270,51 @@ with col_g3:
     if not df_filtrado.empty and 'Fecha_Hora_Radicacion' in df_filtrado.columns:
         df_temp = df_filtrado.copy()
         df_temp['Periodo'] = df_temp['Fecha_Hora_Radicacion'].dt.to_period('M').astype(str)
-        df_temp_grouped = df_temp.groupby('Period
+        df_temp_grouped = df_temp.groupby('Periodo')['Valor_Glosa_Dev'].sum().reset_index()
+        
+        fig_temp = px.line(
+            df_temp_grouped, 
+            x='Periodo', 
+            y='Valor_Glosa_Dev',
+            markers=True,
+            labels={'Periodo': 'Mes de Radicación', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
+        )
+        fig_temp.update_layout(xaxis_tickangle=-45, margin=dict(t=20, b=20, l=20, r=20))
+        st.plotly_chart(fig_temp, use_container_width=True)
+    else:
+        st.info("No hay datos suficientes para la tendencia temporal con los filtros actuales.")
+
+with col_g4:
+    st.markdown("### 👁️ Top 10 Servicios con Mayor Afectación")
+    df_serv = df_filtrado.groupby('Nombre del servicio ')['Valor_Glosa_Dev'].sum().reset_index()
+    df_serv = df_serv.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
+    
+    fig_serv = px.bar(
+        df_serv,
+        x='Valor_Glosa_Dev',
+        y='Nombre del servicio ',
+        orientation='h',
+        text_auto='.2s',
+        labels={'Nombre del servicio ': 'Servicio', 'Valor_Glosa_Dev': 'Valor Depurado ($)'}
+    )
+    fig_serv.update_layout(yaxis={'categoryorder':'total ascending'}, margin=dict(t=20, b=20, l=20, r=20))
+    st.plotly_chart(fig_serv, use_container_width=True)
+
+st.markdown("---")
+
+# ==========================================
+# --- 4. TOP 10 CAUSALES Y MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
+# ==========================================
+col_g5, col_g6 = st.columns(2)
+
+with col_g5:
+    st.markdown("### ⚠️ Top 10 Causales Estandarizadas")
+    df_causal = df_filtrado.groupby('Causal_Estandarizada')['Valor_Glosa_Dev'].sum().reset_index()
+    df_causal = df_causal.sort_values(by='Valor_Glosa_Dev', ascending=False).head(10)
+    fig_causal = px.bar(
+        df_causal, 
+        y='Causal_Estandarizada', 
+        x='Valor_Glosa_Dev', 
+        orientation='h',
+        text_auto='.2s',
+        labels={'Causal_Estandarizada': '
