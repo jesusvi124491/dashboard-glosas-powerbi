@@ -63,16 +63,10 @@ max_f_rad = df_base['Fecha_Hora_Radicacion'].max().date()
 # --- FUNCIONES DE RESTABLECIMIENTO (RESET) ---
 # ==========================================
 def reset_global():
-    # Limpiar o restablecer las llaves de los selectores y multiselectores para que vuelvan a sus valores iniciales
-    st.session_state.tipologia_sel = "Todas"
-    st.session_state.causal_sel = "Todas"
-    st.session_state.riesgo_sel = "Todos"
-    st.session_state.servicios_sel = []
-    
-    if 'widget_rango_atencion' in st.session_state:
-        del st.session_state['widget_rango_atencion']
-    if 'widget_rango_radicacion' in st.session_state:
-        del st.session_state['widget_rango_radicacion']
+    keys_a_borrar = ['tipologia_sel', 'causal_sel', 'riesgo_sel', 'servicios_sel', 'widget_rango_atencion', 'widget_rango_radicacion']
+    for k in keys_a_borrar:
+        if k in st.session_state:
+            del st.session_state[k]
 
 def reset_atencion():
     if 'widget_rango_atencion' in st.session_state:
@@ -123,15 +117,16 @@ with col_f5:
     with sub_fa1:
         rango_atencion = st.date_input(
             "Atención",
-            value=(min_f_at, max_f_at),
+            value=st.session_state.get('widget_rango_atencion', (min_f_at, max_f_at)),
             min_value=min_f_at,
             max_value=max_f_at,
             key='widget_rango_atencion',
             label_visibility="collapsed"
         )
     with sub_fa2:
-        if st.button("🔄", key="btn_reset_at", help="Restablecer Fecha de Atención", on_click=reset_atencion):
-            pass
+        if st.button("🔄", key="btn_reset_at", help="Restablecer Fecha de Atención"):
+            reset_atencion()
+            st.rerun()
 
 with col_f6:
     st.markdown("📈 **Rango de Fecha de Radicación**")
@@ -139,22 +134,24 @@ with col_f6:
     with sub_fr1:
         rango_radicacion = st.date_input(
             "Radicación",
-            value=(min_f_rad, max_f_rad),
+            value=st.session_state.get('widget_rango_radicacion', (min_f_rad, max_f_rad)),
             min_value=min_f_rad,
             max_value=max_f_rad,
             key='widget_rango_radicacion',
             label_visibility="collapsed"
         )
     with sub_fr2:
-        if st.button("🔄", key="btn_reset_rad", help="Restablecer Fecha de Radicación", on_click=reset_radicacion):
-            pass
+        if st.button("🔄", key="btn_reset_rad", help="Restablecer Fecha de Radicación"):
+            reset_radicacion()
+            st.rerun()
 
 # Botón de Restablecimiento Global centrado justo después del último filtro
 st.markdown("<br>", unsafe_allow_html=True)
 col_btn1, col_btn2, col_btn3 = st.columns([3, 4, 3])
 with col_btn2:
-    if st.button("🔄 Restablecer Todos los Filtros (Global)", use_container_width=True, on_click=reset_global):
-        pass
+    if st.button("🔄 Restablecer Todos los Filtros (Global)", use_container_width=True):
+        reset_global()
+        st.rerun()
 
 st.markdown("---")
 
@@ -217,7 +214,7 @@ with col2:
 with col3:
     st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"{recuento_facturas:,}")
+    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
 
 st.markdown("---")
 
