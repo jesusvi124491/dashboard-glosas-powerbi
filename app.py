@@ -231,9 +231,9 @@ with col1:
 with col2:
     st.metric("Valor Depurado Real", f"${val_depurado_filtrado:,.0f}")
 with col3:
-    st.metric("% Impacto Depurado por $", f"{impacto_depurado:.2f}%")
+    st.metric("% Impacto Depurado", f"{impacto_depurado:.2f}%")
 with col4:
-    st.metric("Recuento de Facturas", f"${recuento_facturas:,}")
+    st.metric("Recuento de Facturas", f"{recuento_facturas:,}")
 
 st.markdown("---")
 
@@ -366,7 +366,8 @@ if not df_freq_base.empty and total_filas_all > 0:
     )
     st.plotly_chart(fig_freq, use_container_width=True)
     st.caption(
-        f"El centro muestra el valor sólo del Top 10."
+        f"Cada porcentaje = filas con ese código ÷ {total_filas_all:,} filas totales. "
+        f"El centro muestra la suma del Top 10."
     )
 else:
     st.info("ℹ️ No hay registros disponibles con los filtros seleccionados.")
@@ -374,7 +375,82 @@ else:
 st.markdown("---")
 
 # ==========================================
-# --- 5. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
+# --- 5. ASOCIACIÓN SERVICIO–TIPOLOGÍA (TOP 10 SERVICIOS) ---
+# ==========================================
+# Réplica de la Figura 9 del trabajo (sección 8.4.3): tipología de la glosa en los diez servicios (CUPS)
+# con más unidades únicas de factura–CUPS–tipología. Se calcula sobre la base de análisis completa y
+# NO cambia con los filtros del tablero (igual que en el documento).
+st.markdown("### 🔗 Asociación Servicio–Tipología (Top 10 servicios más frecuentes)")
+st.markdown("Distribución porcentual de la tipología de la glosa dentro de cada servicio (CUPS). "
+            "Una barra con un color dominante indica que ese servicio se glosa sobre todo por ese motivo.")
+
+ORDEN_TIPOLOGIAS = ['Autorizaciones', 'Devoluciones', 'Facturación', 'Soportes', 'Tarifas']
+COLORES_TIPOLOGIA = {
+    'Autorizaciones': '#FF9E1B', 'Devoluciones': '#8A94A6', 'Facturación': '#91DC00',
+    'Soportes': '#0C2340', 'Tarifas': '#3553C8'
+}
+
+# Unidades únicas (factura, CUPS, tipología); se excluye 'Calidad' (< 30 registros)
+df_asoc = (
+    df[df['tipologia'].isin(ORDEN_TIPOLOGIAS)]
+    .drop_duplicates(['Numero_Factura', 'Codigo_Servicio', 'tipologia'])
+)
+top_cups = df_asoc['Codigo_Servicio'].value_counts().head(10).index.tolist()
+df_top = df_asoc[df_asoc['Codigo_Servicio'].isin(top_cups)]
+
+if not df_top.empty:
+    tabla_asoc = pd.crosstab(df_top['Codigo_Servicio'], df_top['tipologia'])
+    tabla_asoc = tabla_asoc.reindex(index=top_cups, columns=ORDEN_TIPOLOGIAS, fill_value=0)
+    tabla_pct = tabla_asoc.div(tabla_asoc.sum(axis=1), axis=0) * 100
+
+    nombres = (df.drop_duplicates('Codigo_Servicio')
+                 .set_index('Codigo_Servicio')['Nombre del servicio ']
+                 .astype(str).str.strip().str.title())
+
+    def etiqueta(c):
+        n = nombres.get(c, '')
+        return f"{c} · {n[:34]}{'…' if len(n) > 34 else ''}"
+
+    largo = tabla_pct.reset_index().melt(id_vars='Codigo_Servicio', var_name='Tipología', value_name='Porcentaje')
+    largo['Servicio'] = largo['Codigo_Servicio'].map(etiqueta)
+    largo['Unidades'] = [int(tabla_asoc.loc[c, t]) for c, t in zip(largo['Codigo_Servicio'], largo['Tipología'])]
+    largo['Texto'] = largo['Porcentaje'].apply(lambda v: f"{v:.0f}%" if v >= 7 else "")
+
+    fig_asoc = px.bar(
+        largo, x='Porcentaje', y='Servicio', color='Tipología', orientation='h',
+        category_orders={'Tipología': ORDEN_TIPOLOGIAS, 'Servicio': [etiqueta(c) for c in top_cups]},
+        color_discrete_map=COLORES_TIPOLOGIA, text='Texto',
+        custom_data=['Unidades'],
+        labels={'Porcentaje': '% de las glosas del servicio'}
+    )
+    fig_asoc.update_traces(
+        textposition='inside', insidetextanchor='middle',
+        hovertemplate="<b>%{y}</b><br>%{fullData.name}: %{x:.1f}% (%{customdata[0]} unidades)<extra></extra>"
+    )
+    fig_asoc.update_layout(
+        barmode='stack', height=520, margin=dict(t=40, b=40, l=20, r=20),
+        yaxis=dict(autorange='reversed', title=''),
+        xaxis=dict(range=[0, 100], ticksuffix='%'),
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='left', x=0, title_text='')
+    )
+    st.plotly_chart(fig_asoc, use_container_width=True)
+
+    st.caption("Réplica de la Figura 9 del trabajo (sección 8.4.3). Unidades únicas de factura, CUPS y tipología; "
+               "no cambia con los filtros del tablero.")
+
+    with st.expander("Ver tabla de frecuencias (unidades por servicio y tipología)"):
+        tabla_vista = tabla_asoc.copy()
+        tabla_vista['Total'] = tabla_vista.sum(axis=1)
+        tabla_vista.index = [etiqueta(c) for c in tabla_vista.index]
+        tabla_vista.index.name = 'Servicio (CUPS)'
+        st.dataframe(tabla_vista, use_container_width=True)
+else:
+    st.info("ℹ️ No hay datos suficientes para la asociación servicio–tipología.")
+
+st.markdown("---")
+
+# ==========================================
+# --- 6. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
 # ==========================================
 st.markdown("### 🚦 Matriz de Semaforización de Riesgo Financiero por Causales de Glosa")
 st.markdown("Clasificación de riesgo basada en el valor acumulado de glosas por causal (🔴 Alto > $233M, 🟡 Medio $10M - $233M, 🟢 Bajo < $10M).")
@@ -405,4 +481,4 @@ if not df_semaforo.empty and df_semaforo['Valor_Glosa_Dev'].sum() > 0:
         hide_index=True
     )
 else:
-    st.info("ℹ️ No hay registros de glosas disponibles con los filtros seleccionados.")
+    st.info("ℹ️ No hay registros de glosas disponibles con los filtros seleccionados.") 
