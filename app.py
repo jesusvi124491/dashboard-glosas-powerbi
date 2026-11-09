@@ -441,19 +441,19 @@ if not df_top.empty:
     )
     st.plotly_chart(fig_asoc, use_container_width=True)
 
-    st.caption("Réplica de la Figura 9 del trabajo (sección 8.4.3). Unidades únicas de factura, CUPS y tipología; "
+    st.caption("Unidades únicas de factura, CUPS y tipología; "
                "no cambia con los filtros del tablero.")
 
-    with st.expander("Ver tabla de frecuencias (unidades por servicio y tipología)"):
-        tabla_vista = tabla_asoc.copy()
-        tabla_vista['Total'] = tabla_vista.sum(axis=1)
-        tabla_vista.index = [etiqueta(c).replace('<br>', ' ') for c in tabla_vista.index]
-        tabla_vista.index.name = 'Servicio (CUPS)'
-        st.dataframe(tabla_vista, use_container_width=True)
-else:
-    st.info("ℹ️ No hay datos suficientes para la asociación servicio–tipología.")
+    #with st.expander("Ver tabla de frecuencias (unidades por servicio y tipología)"):
+        #tabla_vista = tabla_asoc.copy()
+        #tabla_vista['Total'] = tabla_vista.sum(axis=1)
+        #tabla_vista.index = [etiqueta(c).replace('<br>', ' ') for c in tabla_vista.index]
+       # tabla_vista.index.name = 'Servicio (CUPS)'
+        #st.dataframe(tabla_vista, use_container_width=True)
+#else:
+    #st.info("ℹ️ No hay datos suficientes para la asociación servicio–tipología.")
 
-st.markdown("---")
+#st.markdown("---")
 
 # ==========================================
 # --- 6. MATRIZ DE SEMAFORIZACIÓN DE RIESGO FINANCIERO ---
