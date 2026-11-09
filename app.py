@@ -1,4 +1,5 @@
 import streamlit as st
+import textwrap
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -413,7 +414,8 @@ if not df_top.empty:
 
     def etiqueta(c):
         n = nombres.get(c, '')
-        return f"{c} · {n[:34]}{'…' if len(n) > 34 else ''}"
+        # Nombre completo, partido en líneas de ~38 caracteres para que no se corte
+        return f"{c} · " + "<br>".join(textwrap.wrap(n, 38)) if n else str(c)
 
     largo = tabla_pct.reset_index().melt(id_vars='Codigo_Servicio', var_name='Tipología', value_name='Porcentaje')
     largo['Servicio'] = largo['Codigo_Servicio'].map(etiqueta)
@@ -432,8 +434,8 @@ if not df_top.empty:
         hovertemplate="<b>%{y}</b><br>%{fullData.name}: %{x:.1f}% (%{customdata[0]} unidades)<extra></extra>"
     )
     fig_asoc.update_layout(
-        barmode='stack', height=520, margin=dict(t=40, b=40, l=20, r=20),
-        yaxis=dict(autorange='reversed', title=''),
+        barmode='stack', height=640, margin=dict(t=40, b=40, l=20, r=20),
+        yaxis=dict(autorange='reversed', title='', automargin=True, tickfont=dict(size=11)),
         xaxis=dict(range=[0, 100], ticksuffix='%'),
         legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='left', x=0, title_text='')
     )
@@ -445,7 +447,7 @@ if not df_top.empty:
     with st.expander("Ver tabla de frecuencias (unidades por servicio y tipología)"):
         tabla_vista = tabla_asoc.copy()
         tabla_vista['Total'] = tabla_vista.sum(axis=1)
-        tabla_vista.index = [etiqueta(c) for c in tabla_vista.index]
+        tabla_vista.index = [etiqueta(c).replace('<br>', ' ') for c in tabla_vista.index]
         tabla_vista.index.name = 'Servicio (CUPS)'
         st.dataframe(tabla_vista, use_container_width=True)
 else:
