@@ -390,12 +390,16 @@ COLORES_TIPOLOGIA = {
     'Soportes': '#0C2340', 'Tarifas': '#3553C8'
 }
 
-# Unidades únicas (factura, CUPS, tipología); se excluye 'Calidad' (< 30 registros)
+# Mismo procedimiento del script oficial (Tabla 17 / Figura 9):
+# 1) Top 10 CUPS por frecuencia de registros en la base de análisis completa
+# 2) Unidad única = (factura, CUPS, tipología)
+# 3) Se excluye 'Calidad' (< 30 unidades)
+top_cups = df['Codigo_Servicio'].value_counts().head(10).index.tolist()
 df_asoc = (
-    df[df['tipologia'].isin(ORDEN_TIPOLOGIAS)]
+    df[df['Codigo_Servicio'].isin(top_cups)]
     .drop_duplicates(['Numero_Factura', 'Codigo_Servicio', 'tipologia'])
 )
-top_cups = df_asoc['Codigo_Servicio'].value_counts().head(10).index.tolist()
+df_asoc = df_asoc[df_asoc['tipologia'].isin(ORDEN_TIPOLOGIAS)]
 df_top = df_asoc[df_asoc['Codigo_Servicio'].isin(top_cups)]
 
 if not df_top.empty:
